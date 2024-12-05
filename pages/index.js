@@ -215,4 +215,7 @@ const TeacherPlanner = () => {
   );
 };
 
-export default TeacherPlanner;
+// Change this line if it's currently "export default TeacherPlanner"
+export default function Home() {
+  return <TeacherPlanner />;
+}
