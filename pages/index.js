@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client - you'll add your keys here later
 const supabase = createClient(
-  https://jkjrpaxoqtpguktitywu.supabase.co/,
-  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpranJwYXhvcXRwZ3VrdGl0eXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM0MzgyNjAsImV4cCI6MjA0OTAxNDI2MH0.9hx8tqXkHABSfzCoNwoTUQ8JGXdQv0Wrz8lE8G_Ms1Q
+  'https://jkjrpaxoqtpguktitywu.supabase.co/',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpranJwYXhvcXRwZ3VrdGl0eXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM0MzgyNjAsImV4cCI6MjA0OTAxNDI2MH0.9hx8tqXkHABSfzCoNwoTUQ8JGXdQv0Wrz8lE8G_Ms1Q'
 );
 
 const TeacherPlanner = () => {
