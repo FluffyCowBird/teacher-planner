@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import dynamic from 'next/dynamic';
 
 // Initialize Supabase client - you'll add your keys here later
 const supabase = createClient(
