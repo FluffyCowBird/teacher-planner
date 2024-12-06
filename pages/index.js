@@ -5,8 +5,9 @@ const TeacherPlanner = () => {
   const [currentView, setCurrentView] = useState('setup');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
 
-  // Load saved data on mount
+  // Load saved data
   useEffect(() => {
     const savedClasses = localStorage.getItem('teacherPlannerClasses');
     if (savedClasses) {
@@ -18,7 +19,7 @@ const TeacherPlanner = () => {
     }
   }, []);
 
-  // Save data when it changes
+  // Save data
   useEffect(() => {
     localStorage.setItem('teacherPlannerClasses', JSON.stringify(classes));
   }, [classes]);
@@ -32,6 +33,7 @@ const TeacherPlanner = () => {
         grade,
         schedule,
         attendance: {},
+        students: [],
         lessons: {}
       };
       setClasses(prev => [...prev, newClass]);
@@ -39,6 +41,21 @@ const TeacherPlanner = () => {
     } catch (err) {
       setError('Failed to add class. Please try again.');
     }
+  };
+
+  const addStudent = (classId, studentName) => {
+    setClasses(prev => prev.map(cls => {
+      if (cls.id === classId) {
+        return {
+          ...cls,
+          students: [
+            ...cls.students,
+            { id: Date.now().toString(), name: studentName }
+          ]
+        };
+      }
+      return cls;
+    }));
   };
 
   const updateAttendance = (classId, studentId, status) => {
@@ -63,6 +80,113 @@ const TeacherPlanner = () => {
       setError('Failed to update attendance. Please try again.');
     }
   };
+
+  const StudentManagement = () => {
+    const [newStudentName, setNewStudentName] = useState('');
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Manage Students</h2>
+          
+          <div className="mb-4">
+            <select
+              value={selectedClass || ''}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Select a class...</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedClass && (
+            <>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  placeholder="Enter student name"
+                  className="flex-1 p-2 border rounded"
+                />
+                <button
+                  onClick={() => {
+                    if (newStudentName.trim()) {
+                      addStudent(selectedClass, newStudentName.trim());
+                      setNewStudentName('');
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                >
+                  Add Student
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <h3 className="font-semibold mb-2">Current Students</h3>
+                <div className="space-y-2">
+                  {classes.find(c => c.id === selectedClass)?.students.map(student => (
+                    <div key={student.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                      <span>{student.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const AttendanceView = () => (
+    <div className="space-y-6">
+      <input
+        type="date"
+        value={selectedDate}
+        onChange={(e) => setSelectedDate(e.target.value)}
+        className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm p-2"
+      />
+      {classes.map(cls => (
+        <div key={cls.id} className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">{cls.name}</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {cls.students.map(student => {
+              const status = cls.attendance[selectedDate]?.[student.id] || '';
+              return (
+                <button
+                  key={student.id}
+                  onClick={() => {
+                    const nextStatus = {
+                      '': 'present',
+                      'present': 'absent',
+                      'absent': 'tardy',
+                      'tardy': ''
+                    }[status];
+                    updateAttendance(cls.id, student.id, nextStatus);
+                  }}
+                  className={`
+                    p-2 rounded-md flex items-center justify-between
+                    ${status === 'present' ? 'bg-green-100 text-green-800' : ''}
+                    ${status === 'absent' ? 'bg-red-100 text-red-800' : ''}
+                    ${status === 'tardy' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100'}
+                  `}
+                >
+                  <span>{student.name}</span>
+                  <span className="text-sm">
+                    {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Not set'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   const ClassSetup = () => (
     <div className="bg-white rounded-lg shadow p-6">
@@ -120,49 +244,6 @@ const TeacherPlanner = () => {
     </div>
   );
 
-  const AttendanceView = () => (
-    <div className="space-y-6">
-      <input
-        type="date"
-        value={selectedDate}
-        onChange={(e) => setSelectedDate(e.target.value)}
-        className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm p-2"
-      />
-      {classes.map(cls => (
-        <div key={cls.id} className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">{cls.name}</h3>
-          <div className="grid grid-cols-10 gap-2">
-            {Array.from({ length: 25 }, (_, i) => i + 1).map(studentId => {
-              const status = cls.attendance[selectedDate]?.[studentId] || '';
-              return (
-                <button
-                  key={studentId}
-                  onClick={() => {
-                    const nextStatus = {
-                      '': 'present',
-                      'present': 'absent',
-                      'absent': 'tardy',
-                      'tardy': ''
-                    }[status];
-                    updateAttendance(cls.id, studentId, nextStatus);
-                  }}
-                  className={`
-                    w-10 h-10 rounded-md flex items-center justify-center text-sm
-                    ${status === 'present' ? 'bg-green-100 text-green-800' : ''}
-                    ${status === 'absent' ? 'bg-red-100 text-red-800' : ''}
-                    ${status === 'tardy' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100'}
-                  `}
-                >
-                  {studentId}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <div lang="en">
       <main className="min-h-screen bg-gray-100">
@@ -191,6 +272,16 @@ const TeacherPlanner = () => {
               Class Setup
             </button>
             <button
+              onClick={() => setCurrentView('students')}
+              className={`px-4 py-2 rounded-md ${
+                currentView === 'students'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-blue-600'
+              }`}
+            >
+              Manage Students
+            </button>
+            <button
               onClick={() => setCurrentView('attendance')}
               className={`px-4 py-2 rounded-md ${
                 currentView === 'attendance'
@@ -203,6 +294,7 @@ const TeacherPlanner = () => {
           </div>
 
           {currentView === 'setup' && <ClassSetup />}
+          {currentView === 'students' && <StudentManagement />}
           {currentView === 'attendance' && <AttendanceView />}
         </div>
       </main>
