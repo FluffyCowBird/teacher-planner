@@ -370,3 +370,35 @@ const TeacherPlanner = () => {
               }`}
             >
               Class Setup
+</button>
+          </div>
+
+          {currentView === 'attendance' && (
+            <AttendanceView 
+              classes={classes}
+              selectedDate={selectedDate}
+              formatDate={formatDate}
+              updateAttendance={updateAttendance}
+            />
+          )}
+          {currentView === 'reports' && (
+            <AttendanceReport
+              classes={classes}
+              selectedClass={selectedClass}
+              setSelectedClass={setSelectedClass}
+              selectedStudent={selectedStudent}
+              setSelectedStudent={setSelectedStudent}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+            />
+          )}
+          {currentView === 'setup' && (
+            <ClassSetup addClass={addClass} />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default TeacherPlanner;
