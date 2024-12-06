@@ -166,13 +166,19 @@ const TeacherPlanner = () => {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-blue-600 text-white p-4">
-        <div className="container mx-auto">
-          <h1 className="text-2xl font-bold">Teacher Planner</h1>
-        </div>
-      </header>
+ return (
+    <div lang="en">
+      <main className="min-h-screen bg-gray-100">
+        <header className="bg-blue-600 text-white p-4">
+          <div className="container mx-auto">
+            <h1 className="text-2xl font-bold">Teacher Planner</h1>
+          </div>
+        </header>
+
+        {/* Rest of your component */}
+      </main>
+    </div>
+);
 
       <main className="container mx-auto p-4">
         <div className="flex gap-4 mb-6">
