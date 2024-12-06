@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Main TeacherPlanner component
 const TeacherPlanner = () => {
+  // State definitions
   const [classes, setClasses] = useState([]);
   const [currentView, setCurrentView] = useState('setup');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -8,10 +10,224 @@ const TeacherPlanner = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [calendarData, setCalendarData] = useState({
     firstDay: '',
-    specialDays: {} // Format: { 'YYYY-MM-DD': { type: 'non-academic'|'no-school', description: 'Assembly Day' } }
+    specialDays: {}
   });
 
-  // Load saved data
+  // Class Setup Component - Defined BEFORE it's used
+  const ClassSetup = () => (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold mb-4">Add New Class</h2>
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        addClass(
+          formData.get('name'),
+          formData.get('grade'),
+          formData.get('schedule')
+        );
+        e.target.reset();
+      }}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Class Name</label>
+            <input
+              name="name"
+              type="text"
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+              placeholder="e.g., Math Period 1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Grade Level</label>
+            <select
+              name="grade"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+            >
+              <option value="6">6th Grade</option>
+              <option value="7">7th Grade</option>
+              <option value="8">8th Grade</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Schedule</label>
+            <select
+              name="schedule"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+            >
+              <option value="even">Even Days</option>
+              <option value="odd">Odd Days</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Add Class
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  // Student Management Component
+  const StudentManagement = () => {
+    const [newStudentName, setNewStudentName] = useState('');
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Manage Students</h2>
+          <div className="mb-4">
+            <select
+              value={selectedClass || ''}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Select a class...</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedClass && (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  className="flex-1 p-2 border rounded"
+                  placeholder="Enter student name"
+                />
+                <button
+                  onClick={() => {
+                    if (newStudentName.trim()) {
+                      addStudent(selectedClass, newStudentName.trim());
+                      setNewStudentName('');
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                >
+                  Add Student
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <h3 className="font-semibold mb-2">Current Students</h3>
+                <div className="space-y-2">
+                  {classes.find(c => c.id === selectedClass)?.students?.map(student => (
+                    <div key={student.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                      <span>{student.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Calendar Setup Component
+  const CalendarSetup = () => {
+    const [newDate, setNewDate] = useState('');
+    const [dateType, setDateType] = useState('non-academic');
+    const [description, setDescription] = useState('');
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Calendar Setup</h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">First Day of School</label>
+            <input
+              type="date"
+              value={calendarData.firstDay}
+              onChange={(e) => setCalendarData(prev => ({
+                ...prev,
+                firstDay: e.target.value
+              }))}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+            />
+          </div>
+
+          <div className="mt-6">
+            <h3 className="font-semibold mb-2">Add Special Days</h3>
+            <div className="grid gap-4">
+              <input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm p-2"
+              />
+              <select
+                value={dateType}
+                onChange={(e) => setDateType(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm p-2"
+              >
+                <option value="non-academic">Non-Academic Day</option>
+                <option value="no-school">No School</option>
+              </select>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Description (e.g., Assembly Day)"
+                className="block w-full rounded-md border-gray-300 shadow-sm p-2"
+              />
+              <button
+                onClick={() => {
+                  if (newDate) {
+                    setCalendarData(prev => ({
+                      ...prev,
+                      specialDays: {
+                        ...prev.specialDays,
+                        [newDate]: { type: dateType, description }
+                      }
+                    }));
+                    setNewDate('');
+                    setDescription('');
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              >
+                Add Special Day
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="font-semibold mb-2">Special Days</h3>
+            <div className="space-y-2">
+              {Object.entries(calendarData.specialDays)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([date, info]) => (
+                  <div key={date} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span>{new Date(date).toLocaleDateString()} - {info.type} - {info.description}</span>
+                    <button
+                      onClick={() => {
+                        setCalendarData(prev => {
+                          const newSpecialDays = { ...prev.specialDays };
+                          delete newSpecialDays[date];
+                          return { ...prev, specialDays: newSpecialDays };
+                        });
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Load data effect
   useEffect(() => {
     try {
       const savedClasses = localStorage.getItem('teacherPlannerClasses');
@@ -28,12 +244,13 @@ const TeacherPlanner = () => {
     }
   }, []);
 
-  // Save data
+  // Save data effect
   useEffect(() => {
     localStorage.setItem('teacherPlannerClasses', JSON.stringify(classes));
     localStorage.setItem('teacherPlannerCalendar', JSON.stringify(calendarData));
   }, [classes, calendarData]);
 
+  // Helper functions
   const isSchoolDay = (date) => {
     const dayType = calendarData.specialDays[date]?.type;
     return dayType !== 'no-school';
@@ -63,107 +280,66 @@ const TeacherPlanner = () => {
     return academicDayCount % 2 === 0 ? 'even' : 'odd';
   };
 
-  // Calendar Management Component
-  const CalendarSetup = () => {
-    const [newDate, setNewDate] = useState('');
-    const [dateType, setDateType] = useState('non-academic');
-    const [description, setDescription] = useState('');
-
-    return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Calendar Setup</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">First Day of School</label>
-              <input
-                type="date"
-                value={calendarData.firstDay}
-                onChange={(e) => setCalendarData(prev => ({
-                  ...prev,
-                  firstDay: e.target.value
-                }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
-              />
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Add Special Days</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="date"
-                  value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm p-2"
-                />
-                <select
-                  value={dateType}
-                  onChange={(e) => setDateType(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm p-2"
-                >
-                  <option value="non-academic">Non-Academic Day</option>
-                  <option value="no-school">No School</option>
-                </select>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description (e.g., Assembly Day)"
-                  className="block w-full rounded-md border-gray-300 shadow-sm p-2"
-                />
-                <button
-                  onClick={() => {
-                    if (newDate) {
-                      setCalendarData(prev => ({
-                        ...prev,
-                        specialDays: {
-                          ...prev.specialDays,
-                          [newDate]: { type: dateType, description }
-                        }
-                      }));
-                      setNewDate('');
-                      setDescription('');
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
-                >
-                  Add Special Day
-                </button>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Special Days</h3>
-              <div className="space-y-2">
-                {Object.entries(calendarData.specialDays)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([date, info]) => (
-                    <div key={date} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                      <span>{new Date(date).toLocaleDateString()} - {info.type} - {info.description}</span>
-                      <button
-                        onClick={() => {
-                          setCalendarData(prev => {
-                            const newSpecialDays = { ...prev.specialDays };
-                            delete newSpecialDays[date];
-                            return { ...prev, specialDays: newSpecialDays };
-                          });
-                        }}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Class management functions
+  const addClass = (name, grade, schedule) => {
+    try {
+      setError(null);
+      const newClass = {
+        id: Date.now().toString(),
+        name,
+        grade,
+        schedule,
+        attendance: {},
+        students: [],
+        lessons: {}
+      };
+      setClasses(prev => [...prev, newClass]);
+      alert('Class added successfully!');
+    } catch (err) {
+      setError('Failed to add class. Please try again.');
+    }
   };
 
-  // AttendanceView with day type check
+  const addStudent = (classId, studentName) => {
+    setClasses(prev => prev.map(cls => {
+      if (cls.id === classId) {
+        return {
+          ...cls,
+          students: [
+            ...(cls.students || []),
+            { id: Date.now().toString(), name: studentName }
+          ]
+        };
+      }
+      return cls;
+    }));
+  };
+
+  // Attendance management
+  const updateAttendance = (classId, studentId, status) => {
+    try {
+      setError(null);
+      setClasses(prev => prev.map(cls => {
+        if (cls.id === classId) {
+          return {
+            ...cls,
+            attendance: {
+              ...cls.attendance,
+              [selectedDate]: {
+                ...(cls.attendance[selectedDate] || {}),
+                [studentId]: status
+              }
+            }
+          };
+        }
+        return cls;
+      }));
+    } catch (err) {
+      setError('Failed to update attendance. Please try again.');
+    }
+  };
+
+  // Attendance View Component
   const AttendanceView = () => {
     const dayType = calculateDayType(selectedDate);
     const specialDay = calendarData.specialDays[selectedDate];
@@ -231,6 +407,8 @@ const TeacherPlanner = () => {
                       ${status === 'tardy' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100'}
                     `}
                   >
+`}
+                  >
                     <span>{student.name}</span>
                     <span className="text-sm">
                       {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Not set'}
@@ -245,9 +423,7 @@ const TeacherPlanner = () => {
     );
   };
 
-  // Rest of your components (ClassSetup, StudentManagement) remain the same...
-  // [Previous code for other components goes here]
-
+  // Main render
   return (
     <div lang="en">
       <main className="min-h-screen bg-gray-100">
