@@ -3,11 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self' data:">
     <title>My GitHub.io Site</title>
+    <!-- Add Firebase SDK script tags -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="login-container">
+      <h1>Please Log In</h1>
+      <form id="login-form">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Log In</button>
+      </form>
+    </div>
+    <div id="app" style="display: none;">
+      <!-- Your existing site content goes here -->
+    </div>
     <script src="login.js"></script>
   </body>
 </html>
