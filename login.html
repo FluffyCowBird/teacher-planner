@@ -3,18 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Login</title>
+    <title>My GitHub.io Site</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   </head>
   <body>
-    <h1>Login</h1>
-    <form id="loginForm">
-      <label for="username">Username:</label>
-<!-- login.html -->
-<input type="text" id="username" name="username" required/>
-      <label for="password">Password:</label>
-<input type="password" id="password" name="password" required/>
-      <button type="submit">Login</button>
-    </form>
+    <div id="email-container">
+      <h1>Sign in with your email</h1>
+      <form id="email-form">
+        <label for="email-input">Email:</label>
+        <input type="email" id="email-input" name="email" required>
+        <button type="submit">Send Sign-in Link</button>
+      </form>
+    </div>
+    <div id="app" style="display: none;">
+      <!-- Your existing site content goes here -->
+    </div>
     <script src="login.js"></script>
   </body>
 </html>
