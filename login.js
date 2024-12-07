@@ -1,6 +1,8 @@
+// Import statements
 import { initializeApp } from "firebase/app";
 import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, onAuthStateChanged } from "firebase/auth";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
   authDomain: "teacher-planner-3e51a.firebaseapp.com",
@@ -10,7 +12,6 @@ const firebaseConfig = {
   appId: "1:52595844350:web:1de975e598d5ce70a131af",
   measurementId: "G-YHX3LGFLEL"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
