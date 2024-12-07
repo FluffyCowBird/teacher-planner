@@ -1,10 +1,10 @@
 window.addEventListener('DOMContentLoaded', () => {
   console.log('login.js is loaded and running');
   // Get the user input from the login form
-  console.log('username input and password input success');
-  const usernameInput = document.getElementById('username');
-  const passwordInput = document.getElementById('password');
-
+const usernameInput = document.getElementById('username');
+console.log(usernameInput);
+const passwordInput = document.getElementById('password');
+console.log(passwordInput);
   // Sanitize the user input
   console.log('sanitized username and password success');
   const sanitizedUsername = new DOMParser().parseFromString(usernameInput.value, 'text/html').documentElement.textContent;
