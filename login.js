@@ -7,53 +7,63 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
+const emailInput = document.getElementById('email-input');
+const emailForm = document.getElementById('email-form');
 const appContainer = document.getElementById('app');
-const loginContainer = document.getElementById('login-container');
+const emailContainer = document.getElementById('email-container');
 
 // Handle user state changes
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
     // User is signed in, show the app container
-    loginContainer.style.display = 'none';
+    emailContainer.style.display = 'none';
     appContainer.style.display = 'block';
   } else {
-    // User is signed out, show the login container
-    loginContainer.style.display = 'block';
+    // User is signed out, show the email container
+    emailContainer.style.display = 'block';
     appContainer.style.display = 'none';
   }
 });
 
-// Login form event listener
-loginForm.addEventListener('submit', async (event) => {
+emailForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const usernameInput = document.getElementById('username');
-  const passwordInput = document.getElementById('password');
+
+  const email = emailInput.value;
+
+  const actionCodeSettings = {
+    url: 'https://your-github-io-site.github.io',
+    handleCodeInApp: true,
+    iOS: {
+      bundleId: 'com.example.ios'
+    },
+    android: {
+      packageName: 'com.example.android',
+      installApp: true,
+      minimumVersion: '12'
+    },
+    dynamicLinkDomain: 'example.page.link'
+  };
 
   try {
-    await firebase.auth().signInWithEmailAndPassword(
-      usernameInput.value,
-      passwordInput.value
-    );
+    await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+    window.localStorage.setItem('emailForSignIn', email);
+    alert('Sign-in link sent to your email. Please check your inbox.');
   } catch (error) {
-    alert('Invalid username or password. Please try again.');
+    alert('Failed to send sign-in link. Please try again.');
   }
 });
 
-// Registration form event listener
-registerForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const emailInput = document.getElementById('register-email');
-  const passwordInput = document.getElementById('register-password');
+if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+  let email = window.localStorage.getItem('emailForSignIn');
+  if (!email) {
+    email = window.prompt('Please provide your email for confirmation');
+  }
 
   try {
-    await firebase.auth().createUserWithEmailAndPassword(
-      emailInput.value,
-      passwordInput.value
-    );
-    alert('Registration successful! You can now log in.');
+    await firebase.auth().signInWithEmailLink(email, window.location.href);
+    window.localStorage.removeItem('emailForSignIn');
+    // User is now signed in
   } catch (error) {
-    alert('Failed to create an account. Please try again.');
+    alert('Failed to complete sign-in. Please try again.');
   }
-});
+}
