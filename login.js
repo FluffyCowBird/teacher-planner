@@ -1,3 +1,4 @@
+console.log('login.js is loaded and running');
 // Get the user input from the login form
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
