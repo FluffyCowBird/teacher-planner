@@ -1,16 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  output: 'export',
-  basePath: '/teacher-planner',
-  images: {
-    unoptimized: true,
-  },
-  webpack: (config) => { 
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': __dirname,
-    };
-    return config;
-  },
+module.exports = {
+ basePath: '/teacher-planner',
+ assetPrefix: '/teacher-planner/',
+ trailingSlash: true,
+ output: 'export'
 }
