@@ -1,29 +1,37 @@
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('login.js is loaded and running');
+import firebase from 'firebase/app';
+import 'firebase/auth';
 
-  // Get the user input from the login form
-  console.log('Checking username and password input elements...');
+const firebaseConfig = {
+  apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
+  authDomain: "teacher-planner-3e51a.firebaseapp.com",
+  projectId: "teacher-planner-3e51a",
+  storageBucket: "teacher-planner-3e51a.firebasestorage.app",
+  messagingSenderId: "52595844350",
+  appId: "1:52595844350:web:1de975e598d5ce70a131af",
+  measurementId: "G-YHX3LGFLEL"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const loginForm = document.getElementById('login-form');
+const appContainer = document.getElementById('app');
+
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
   const usernameInput = document.getElementById('username');
-  console.log('usernameInput:', usernameInput);
   const passwordInput = document.getElementById('password');
-  console.log('passwordInput:', passwordInput);
 
-  if (usernameInput === null || passwordInput === null) {
-    console.error('Failed to find username or password input elements!');
-  } else {
-    console.log('username input and password input success');
+  try {
+    await firebase.auth().signInWithEmailAndPassword(
+      usernameInput.value,
+      passwordInput.value
+    );
 
-    // Sanitize the user input
-    console.log('sanitized username and password success');
-    const sanitizedUsername = new DOMParser().parseFromString(usernameInput.value, 'text/html').documentElement.textContent;
-    const sanitizedPassword = new DOMParser().parseFromString(passwordInput.value, 'text/html').documentElement.textContent;
-
-    // Add the login form submission event listener and sanitization
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      // Use sanitizedUsername and sanitizedPassword in your login logic
-    });
+    // Login successful, show the app container
+    document.getElementById('login-container').style.display = 'none';
+    appContainer.style.display = 'block';
+  } catch (error) {
+    alert('Invalid username or password. Please try again.');
   }
 });
