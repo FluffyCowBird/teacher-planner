@@ -2,12 +2,13 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 
 const firebaseConfig = {
-  // Your actual Firebase configuration goes here
+  // Your Firebase configuration goes here
 };
 
 firebase.initializeApp(firebaseConfig);
 
 const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
 const appContainer = document.getElementById('app');
 const loginContainer = document.getElementById('login-container');
 
@@ -24,9 +25,9 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
+// Login form event listener
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-
   const usernameInput = document.getElementById('username');
   const passwordInput = document.getElementById('password');
 
@@ -37,5 +38,22 @@ loginForm.addEventListener('submit', async (event) => {
     );
   } catch (error) {
     alert('Invalid username or password. Please try again.');
+  }
+});
+
+// Registration form event listener
+registerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const emailInput = document.getElementById('register-email');
+  const passwordInput = document.getElementById('register-password');
+
+  try {
+    await firebase.auth().createUserWithEmailAndPassword(
+      emailInput.value,
+      passwordInput.value
+    );
+    alert('Registration successful! You can now log in.');
+  } catch (error) {
+    alert('Failed to create an account. Please try again.');
   }
 });
