@@ -1,15 +1,6 @@
-import firebase from 'firebase/app';
-import 'firebase/auth';
-
-const firebaseConfig = {
-  // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, onAuthStateChanged } from "firebase/auth";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
   authDomain: "teacher-planner-3e51a.firebaseapp.com",
@@ -22,10 +13,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-};
-
-firebase.initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 const authorizedEmail = 'nbeuttenmueller@sau29.org';
 const emailInput = document.getElementById('email-input');
@@ -33,7 +21,7 @@ const emailForm = document.getElementById('email-form');
 const appContainer = document.getElementById('app');
 const emailContainer = document.getElementById('email-container');
 
-firebase.auth().onAuthStateChanged((user) => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
     emailContainer.style.display = 'none';
     appContainer.style.display = 'block';
@@ -45,29 +33,20 @@ firebase.auth().onAuthStateChanged((user) => {
 
 emailForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-
   const email = emailInput.value;
-
+  
   if (email === authorizedEmail) {
     const actionCodeSettings = {
       url: 'https://fluffycowbird.github.io/teacher-planner/',
-      handleCodeInApp: true,
-      iOS: {
-        bundleId: 'com.example.ios'
-      },
-      android: {
-        packageName: 'com.example.android',
-        installApp: true,
-        minimumVersion: '12'
-      },
-      dynamicLinkDomain: 'https://fluffycowbird.github.io/teacher-planner/'
+      handleCodeInApp: true
     };
 
     try {
-      await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
       alert('Sign-in link sent to your email. Please check your inbox.');
     } catch (error) {
+      console.error('Error:', error);
       alert('Failed to send sign-in link. Please try again.');
     }
   } else {
@@ -75,17 +54,19 @@ emailForm.addEventListener('submit', async (event) => {
   }
 });
 
-if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+if (isSignInWithEmailLink(auth, window.location.href)) {
   let email = window.localStorage.getItem('emailForSignIn');
   if (!email || email !== authorizedEmail) {
     email = window.prompt('Please provide your authorized email for confirmation');
   }
 
-  try {
-    await firebase.auth().signInWithEmailLink(email, window.location.href);
-    window.localStorage.removeItem('emailForSignIn');
-    // User is now signed in
-  } catch (error) {
-    alert('Failed to complete sign-in. Please try again.');
+  if (email) {
+    try {
+      await signInWithEmailLink(auth, email, window.location.href);
+      window.localStorage.removeItem('emailForSignIn');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to complete sign-in. Please try again.');
+    }
   }
 }
