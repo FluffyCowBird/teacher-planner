@@ -2,12 +2,32 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 
 const firebaseConfig = {
-  // Your Firebase configuration goes here
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
+  authDomain: "teacher-planner-3e51a.firebaseapp.com",
+  projectId: "teacher-planner-3e51a",
+  storageBucket: "teacher-planner-3e51a.firebasestorage.app",
+  messagingSenderId: "52595844350",
+  appId: "1:52595844350:web:1de975e598d5ce70a131af",
+  measurementId: "G-YHX3LGFLEL"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 };
 
 firebase.initializeApp(firebaseConfig);
 
-const authorizedEmail = 'your-email@example.com';
+const authorizedEmail = 'nbeuttenmueller@sau29.org';
 const emailInput = document.getElementById('email-input');
 const emailForm = document.getElementById('email-form');
 const appContainer = document.getElementById('app');
@@ -30,7 +50,7 @@ emailForm.addEventListener('submit', async (event) => {
 
   if (email === authorizedEmail) {
     const actionCodeSettings = {
-      url: 'https://your-github-io-site.github.io',
+      url: 'https://fluffycowbird.github.io/teacher-planner/',
       handleCodeInApp: true,
       iOS: {
         bundleId: 'com.example.ios'
@@ -40,7 +60,7 @@ emailForm.addEventListener('submit', async (event) => {
         installApp: true,
         minimumVersion: '12'
       },
-      dynamicLinkDomain: 'example.page.link'
+      dynamicLinkDomain: 'https://fluffycowbird.github.io/teacher-planner/'
     };
 
     try {
