@@ -6,6 +6,7 @@
     <title>Teacher Planner</title>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="/teacher-planner/pages/TeacherPlanner.js" type="module"></script>
   </head>
   <body>
     <div id="login-container">
@@ -27,7 +28,7 @@
         <h1>Teacher Planner</h1>
         <button onclick="signOut()">Sign Out</button>
       </div>
-      <TeacherPlanner />
+      <div id="planner-root"></div>
     </div>
     <script>
       const firebaseConfig = {
@@ -70,6 +71,10 @@
         if (user) {
           document.getElementById('login-container').style.display = 'none';
           document.getElementById('app').style.display = 'block';
+          // Initialize the planner component after login
+          if (window.initializePlanner) {
+            window.initializePlanner('planner-root');
+          }
         } else {
           document.getElementById('login-container').style.display = 'block';
           document.getElementById('app').style.display = 'none';
