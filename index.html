@@ -15,6 +15,7 @@
        <input type="email" id="email-input" name="email" required>
        <button type="submit">Send Sign-in Link</button>
      </form>
+     <button onclick="window.location.href = window.location.href + '?t=' + new Date().getTime();" style="margin-top: 10px;">Refresh Page</button>
    </div>
    <div id="app" style="display: none;">
      <h1>Welcome to Teacher Planner</h1>
