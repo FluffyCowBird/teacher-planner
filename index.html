@@ -52,26 +52,49 @@
       document.getElementById('email-form').addEventListener('submit', async (event) => {
         event.preventDefault();
         const email = document.getElementById('email-input').value;
+        console.log('Form submitted with email:', email);
         
         if (email === authorizedEmail) {
+          console.log('Email matches authorized email');
           const actionCodeSettings = {
             url: 'https://fluffycowbird.github.io/teacher-planner/',
             handleCodeInApp: true
           };
           
           try {
+            console.log('Attempting to send sign-in link...');
             await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+            console.log('Sign-in link sent successfully');
             window.localStorage.setItem('emailForSignIn', email);
             alert('Sign-in link sent to your email. Please check your inbox.');
           } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to send sign-in link. Please try again.');
+            console.error('Error sending sign-in link:', error);
+            alert('Failed to send sign-in link. Error: ' + error.message);
           }
         } else {
+          console.log('Email does not match authorized email');
           alert('Sorry, this sign-in option is only available for your authorized email.');
         }
       });
 
       // Complete the sign-in process
       if (auth.isSignInWithEmailLink(window.location.href)) {
-        le
+        let email = window.localStorage.getItem('emailForSignIn');
+        if (!email || email !== authorizedEmail) {
+          email = window.prompt('Please provide your authorized email for confirmation');
+        }
+
+        if (email) {
+          auth.signInWithEmailLink(email, window.location.href)
+            .then(() => {
+              window.localStorage.removeItem('emailForSignIn');
+            })
+            .catch((error) => {
+              console.error('Error:', error);
+              alert('Failed to complete sign-in. Please try again.');
+            });
+        }
+      }
+    </script>
+  </body>
+</html>
