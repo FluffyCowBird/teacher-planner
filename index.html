@@ -1,123 +1,134 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Teacher Planner</title>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-  </head>
-  <body>
-    <div id="email-container">
-      <h1>Sign in with your email</h1>
-      <form id="email-form">
-        <label for="email-input">Email:</label>
-        <input type="email" id="email-input" name="email" required>
-        <button type="submit">Send Sign-in Link</button>
-      </form>
-      <button onclick="window.location.href = window.location.href + '?t=' + new Date().getTime();" style="margin-top: 10px;">Refresh Page</button>
-    </div>
-    <div id="app" style="display: none;">
-      <h1>Welcome to Teacher Planner</h1>
-      <p>You are signed in!</p>
-      <button onclick="signOut()">Sign Out</button>
-      <!-- Your existing site content -->
-    </div>
-    <script>
-      // Initialize Firebase
-      const firebaseConfig = {
-        apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
-        authDomain: "teacher-planner-3e51a.firebaseapp.com",
-        projectId: "teacher-planner-3e51a",
-        storageBucket: "teacher-planner-3e51a.firebasestorage.app",
-        messagingSenderId: "52595844350",
-        appId: "1:52595844350:web:1de975e598d5ce70a131af",
-        measurementId: "G-YHX3LGFLEL"
-      };
+ <head>
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <title>Teacher Planner</title>
+   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+ </head>
+ <body>
+   <div id="email-container">
+     <h1>Sign in with your email</h1>
+     <form id="email-form">
+       <label for="email-input">Email:</label>
+       <input type="email" id="email-input" name="email" required>
+       <button type="submit">Send Sign-in Link</button>
+     </form>
+     <button onclick="window.location.href = window.location.href + '?t=' + new Date().getTime();" style="margin-top: 10px;">Refresh Page</button>
+   </div>
+   <div id="app" style="display: none;">
+     <h1>Welcome to Teacher Planner</h1>
+     <p>You are signed in!</p>
+     <button onclick="signOut()">Sign Out</button>
+     <!-- Your existing site content -->
+   </div>
+   <script>
+     window.addEventListener('load', function() {
+       // Clear any existing state
+       localStorage.clear();
+       
+       // Initialize Firebase
+       const firebaseConfig = {
+         apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
+         authDomain: "teacher-planner-3e51a.firebaseapp.com",
+         projectId: "teacher-planner-3e51a",
+         storageBucket: "teacher-planner-3e51a.firebasestorage.app",
+         messagingSenderId: "52595844350",
+         appId: "1:52595844350:web:1de975e598d5ce70a131af",
+         measurementId: "G-YHX3LGFLEL"
+       };
 
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const authorizedEmail = 'nbeuttenmueller@sau29.org';
+       firebase.initializeApp(firebaseConfig);
+       const auth = firebase.auth();
+       
+       // Force sign out on load
+       auth.signOut().then(() => {
+         console.log('Forced sign out on page load');
+       });
 
-      // Sign out function
-      function signOut() {
-        auth.signOut().then(() => {
-          console.log('Signed out');
-          localStorage.clear();
-          window.location.href = window.location.href.split('?')[0];
-        }).catch((error) => {
-          console.error('Sign out error:', error);
-        });
-      }
+       const authorizedEmail = 'nbeuttenmueller@sau29.org';
 
-      // Check if we're coming back from a sign-in link
-      if (window.location.href.includes('?')) {
-        signOut(); // Clear any existing auth state
-      }
+       // Sign out function
+       window.signOut = function() {
+         auth.signOut().then(() => {
+           console.log('Signed out');
+           localStorage.clear();
+           window.location.href = window.location.href.split('?')[0];
+         }).catch((error) => {
+           console.error('Sign out error:', error);
+         });
+       }
 
-      // Handle auth state changes
-      auth.onAuthStateChanged((user) => {
-        console.log('Auth state changed:', user ? 'signed in' : 'signed out');
-        const emailContainer = document.getElementById('email-container');
-        const appContainer = document.getElementById('app');
-        if (user && user.email === authorizedEmail) {
-          emailContainer.style.display = 'none';
-          appContainer.style.display = 'block';
-        } else {
-          emailContainer.style.display = 'block';
-          appContainer.style.display = 'none';
-        }
-      });
+       // Check if we're coming back from a sign-in link
+       if (window.location.href.includes('?')) {
+         signOut(); // Clear any existing auth state
+       }
 
-      // Handle form submission
-      document.getElementById('email-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const email = document.getElementById('email-input').value;
-        console.log('Form submitted with email:', email);
-        
-        if (email === authorizedEmail) {
-          console.log('Email matches authorized email');
-          const actionCodeSettings = {
-            url: 'https://fluffycowbird.github.io/teacher-planner/index.html',
-            handleCodeInApp: true
-          };
-          
-          try {
-            console.log('Attempting to send sign-in link...');
-            await auth.sendSignInLinkToEmail(email, actionCodeSettings);
-            console.log('Sign-in link sent successfully');
-            window.localStorage.setItem('emailForSignIn', email);
-            alert('Sign-in link sent to your email. Please check your inbox.');
-          } catch (error) {
-            console.error('Error sending sign-in link:', error);
-            alert('Failed to send sign-in link. Error: ' + error.message);
-          }
-        } else {
-          console.log('Email does not match authorized email');
-          alert('Sorry, this sign-in option is only available for your authorized email.');
-        }
-      });
+       // Handle auth state changes
+       auth.onAuthStateChanged((user) => {
+         console.log('Auth state changed:', user ? 'signed in' : 'signed out');
+         const emailContainer = document.getElementById('email-container');
+         const appContainer = document.getElementById('app');
+         if (user && user.email === authorizedEmail) {
+           emailContainer.style.display = 'none';
+           appContainer.style.display = 'block';
+         } else {
+           emailContainer.style.display = 'block';
+           appContainer.style.display = 'none';
+         }
+       });
 
-      // Complete the sign-in process
-      if (auth.isSignInWithEmailLink(window.location.href)) {
-        let email = window.localStorage.getItem('emailForSignIn');
-        if (!email || email !== authorizedEmail) {
-          email = window.prompt('Please provide your authorized email for confirmation');
-        }
+       // Handle form submission
+       document.getElementById('email-form').addEventListener('submit', async (event) => {
+         event.preventDefault();
+         const email = document.getElementById('email-input').value;
+         console.log('Form submitted with email:', email);
+         
+         if (email === authorizedEmail) {
+           console.log('Email matches authorized email');
+           const actionCodeSettings = {
+             url: 'https://fluffycowbird.github.io/teacher-planner/index.html',
+             handleCodeInApp: true
+           };
+           
+           try {
+             console.log('Attempting to send sign-in link...');
+             await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+             console.log('Sign-in link sent successfully');
+             window.localStorage.setItem('emailForSignIn', email);
+             alert('Sign-in link sent to your email. Please check your inbox.');
+           } catch (error) {
+             console.error('Error sending sign-in link:', error);
+             alert('Failed to send sign-in link. Error: ' + error.message);
+           }
+         } else {
+           console.log('Email does not match authorized email');
+           alert('Sorry, this sign-in option is only available for your authorized email.');
+         }
+       });
 
-        if (email) {
-          auth.signInWithEmailLink(email, window.location.href)
-            .then(() => {
-              window.localStorage.removeItem('emailForSignIn');
-              console.log('Successfully signed in with email link');
-            })
-            .catch((error) => {
-              console.error('Error:', error);
-              alert('Failed to complete sign-in. Please try again.');
-              signOut();
-            });
-        }
-      }
-    </script>
-  </body>
+       // Complete the sign-in process
+       if (auth.isSignInWithEmailLink(window.location.href)) {
+         let email = window.localStorage.getItem('emailForSignIn');
+         if (!email || email !== authorizedEmail) {
+           email = window.prompt('Please provide your authorized email for confirmation');
+         }
+
+         if (email) {
+           auth.signInWithEmailLink(email, window.location.href)
+             .then(() => {
+               window.localStorage.removeItem('emailForSignIn');
+               console.log('Successfully signed in with email link');
+             })
+             .catch((error) => {
+               console.error('Error:', error);
+               alert('Failed to complete sign-in. Please try again.');
+               signOut();
+             });
+         }
+       }
+     });
+   </script>
+ </body>
 </html>
