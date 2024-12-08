@@ -11,8 +11,15 @@
     <div id="login-container">
       <h1>Teacher Planner</h1>
       <form id="login-form">
-        <input type="password" id="password-input" placeholder="Enter password" required>
-        <button type="submit">Sign In</button>
+        <div>
+          <label for="email-input">Email:</label>
+          <input type="email" id="email-input" value="nbeuttenmueller@sau29.org" readonly>
+        </div>
+        <div style="margin-top: 10px;">
+          <label for="password-input">Password:</label>
+          <input type="password" id="password-input" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" style="margin-top: 10px;">Sign In</button>
       </form>
     </div>
     <div id="app" style="display: none;">
@@ -21,7 +28,6 @@
       <!-- Your existing site content -->
     </div>
     <script>
-      // Initialize Firebase
       const firebaseConfig = {
         apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
         authDomain: "teacher-planner-3e51a.firebaseapp.com",
@@ -35,37 +41,29 @@
       firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
 
-      // The correct password - change this to your desired password
-      const CORRECT_PASSWORD = "R1lla my R1lla*$*";
-
-      // Sign out function
       window.signOut = function() {
         auth.signOut().then(() => {
           document.getElementById('login-container').style.display = 'block';
           document.getElementById('app').style.display = 'none';
+        }).catch((error) => {
+          console.error('Sign out error:', error);
         });
       }
 
-      // Handle login form submission
       document.getElementById('login-form').addEventListener('submit', async (event) => {
         event.preventDefault();
+        const email = document.getElementById('email-input').value;
         const password = document.getElementById('password-input').value;
         
-        if (password === CORRECT_PASSWORD) {
-          // Sign in anonymously to Firebase to maintain session
-          try {
-            await auth.signInAnonymously();
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-          } catch (error) {
-            alert('Error signing in. Please try again.');
-          }
-        } else {
-          alert('Incorrect password');
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+          document.getElementById('password-input').value = ''; // Clear password field
+        } catch (error) {
+          console.error('Login error:', error);
+          alert('Incorrect password. Please try again.');
         }
       });
 
-      // Check auth state on page load
       auth.onAuthStateChanged((user) => {
         if (user) {
           document.getElementById('login-container').style.display = 'none';
