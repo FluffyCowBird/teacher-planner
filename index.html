@@ -4,9 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Teacher Planner</title>
+    <!-- Add module type to React script -->
+    <script type="module" src="/teacher-planner/pages/TeacherPlanner.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="/teacher-planner/pages/TeacherPlanner.js" type="module"></script>
   </head>
   <body>
     <div id="login-container">
@@ -28,6 +29,7 @@
         <h1>Teacher Planner</h1>
         <button onclick="signOut()">Sign Out</button>
       </div>
+      <!-- Add this div for the planner to render into -->
       <div id="planner-root"></div>
     </div>
     <script>
@@ -60,7 +62,7 @@
         
         try {
           await auth.signInWithEmailAndPassword(email, password);
-          document.getElementById('password-input').value = ''; // Clear password field
+          document.getElementById('password-input').value = '';
         } catch (error) {
           console.error('Login error:', error);
           alert('Incorrect password. Please try again.');
@@ -71,10 +73,8 @@
         if (user) {
           document.getElementById('login-container').style.display = 'none';
           document.getElementById('app').style.display = 'block';
-          // Initialize the planner component after login
-          if (window.initializePlanner) {
-            window.initializePlanner('planner-root');
-          }
+          // Initialize planner when logged in
+          window.initializePlanner('planner-root');
         } else {
           document.getElementById('login-container').style.display = 'block';
           document.getElementById('app').style.display = 'none';
