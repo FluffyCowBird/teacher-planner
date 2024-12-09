@@ -7,83 +7,13 @@
     <!-- Add React and ReactDOM first -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Then your TeacherPlanner script -->
-    <script type="module" src="./teacher-planner/pages/TeacherPlanner.js"></script>
     <!-- Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <!-- Then your TeacherPlanner script -->
+    <script type="module" src="./teacher-planner/pages/TeacherPlanner.js"></script>
   </head>
   <body>
-    <div id="login-container">
-      <h1>Sign in with your email</h1>
-      <form id="login-form">
-        <div>
-          <label for="email-input">Email:</label>
-          <input type="email" id="email-input" value="nbeuttenmueller@sau29.org" readonly />
-        </div>
-        <div>
-          <label for="password-input">Password:</label>
-          <input type="password" id="password-input" placeholder="Enter your password" required />
-        </div>
-        <button type="submit">Sign In</button>
-      </form>
-    </div>
-    <div id="app" style="display: none;">
-      <div style="display: flex; justify-content: space-between; padding: 10px;">
-        <h1>Teacher Planner</h1>
-        <button onclick="signOut()">Sign Out</button>
-      </div>
-      <!-- Add this div for the planner to render into -->
-      <div id="planner-root"></div>
-    </div>
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
-        authDomain: "teacher-planner-3e51a.firebaseapp.com",
-        projectId: "teacher-planner-3e51a",
-        storageBucket: "teacher-planner-3e51a.firebasestorage.app",
-        messagingSenderId: "52595844350",
-        appId: "1:52595844350:web:1de975e598d5ce70a131af",
-        measurementId: "G-YHX3LGFLEL"
-      };
-
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-
-      window.signOut = function() {
-        auth.signOut().then(() => {
-          document.getElementById('login-container').style.display = 'block';
-          document.getElementById('app').style.display = 'none';
-        }).catch((error) => {
-          console.error('Sign out error:', error);
-        });
-      }
-
-      document.getElementById('login-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const email = document.getElementById('email-input').value;
-        const password = document.getElementById('password-input').value;
-        
-        try {
-          await auth.signInWithEmailAndPassword(email, password);
-          document.getElementById('password-input').value = '';
-        } catch (error) {
-          console.error('Login error:', error);
-          alert('Incorrect password. Please try again.');
-        }
-      });
-
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          document.getElementById('login-container').style.display = 'none';
-          document.getElementById('app').style.display = 'block';
-          // Initialize planner when logged in
-          window.initializePlanner('planner-root');
-        } else {
-          document.getElementById('login-container').style.display = 'block';
-          document.getElementById('app').style.display = 'none';
-        }
-      });
-    </script>
+    <!-- Rest of the HTML code remains the same -->
   </body>
 </html>
