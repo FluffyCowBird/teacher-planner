@@ -8,148 +8,48 @@ const DAY_TYPES = {
   WORKSHOP: 'workshop',
   ASSEMBLY: 'assembly',
   SNOW: 'snow',
-  HOLIDAY: 'holiday',
-  EARLY_RELEASE: 'early_release',
-  OTHER: 'other'
+  HOLIDAY: 'holiday'
 };
 
 const GRADE_LEVELS = [6, 7, 8];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const STATUS_TYPES = {
-  PERFORMANCE: {
-    EXCEPTIONAL: { icon: '⭐', label: 'Exceptional Performance' },
-    IMPROVED: { icon: '📈', label: 'Improved Performance' },
-    DECLINING: { icon: '📉', label: 'Declining Performance' }
-  },
-  BEHAVIOR: {
-    POSITIVE: { icon: '👍', label: 'Positive Behavior' },
-    DISRUPTIVE: { icon: '⚠️', label: 'Disruptive Behavior' },
-    REFERRAL: { icon: '📋', label: 'Office Referral' }
-  },
-  ENGAGEMENT: {
-    HIGH: { icon: '🌟', label: 'High Engagement' },
-    LOW: { icon: '😴', label: 'Low Engagement' }
-  },
-  COMMUNICATION: {
-    PARENT_CONTACT: { icon: '📞', label: 'Parent Contact Made' },
-    CONFERENCE_NEEDED: { icon: '🤝', label: 'Conference Needed' }
-  }
-};
-
-const ATTENDANCE_TYPES = {
-  PRESENT: 'present',
-  ABSENT: 'absent',
-  TARDY: 'tardy',
-  EXCUSED: 'excused'
+  PERFORMANCE: { icon: '⭐', label: 'Performance' },
+  BEHAVIOR: { icon: '📋', label: 'Behavior' },
+  ENGAGEMENT: { icon: '👀', label: 'Engagement' }
 };
 
 const TeacherPlanner = () => {
-  // State Management using React hooks
+  // State Management
   const [view, setView] = React.useState('calendar');
   const [calendar, setCalendar] = React.useState({});
   const [units, setUnits] = React.useState([]);
   const [classes, setClasses] = React.useState([]);
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [currentUnit, setCurrentUnit] = React.useState(null);
-  const [currentClass, setCurrentClass] = React.useState(null);
-  const [templates, setTemplates] = React.useState({});
-  const [lessonPlans, setLessonPlans] = React.useState({});
-  const [assessments, setAssessments] = React.useState({});
-  const [settings, setSettings] = React.useState({
-    schoolYear: {
-      start: null,
-      end: null
-    },
-    terms: [],
-    defaultDayType: DAY_TYPES.ODD
-  });
 
-  // Initial Data Load
+  // Load saved data
   React.useEffect(() => {
-    const loadData = async () => {
-      try {
-        const savedData = localStorage.getItem('teacherPlannerData');
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          setCalendar(parsed.calendar || {});
-          setUnits(parsed.units || []);
-          setClasses(parsed.classes || []);
-          setTemplates(parsed.templates || {});
-          setLessonPlans(parsed.lessonPlans || {});
-          setAssessments(parsed.assessments || {});
-          setSettings(parsed.settings || {
-            schoolYear: { start: null, end: null },
-            terms: [],
-            defaultDayType: DAY_TYPES.ODD
-          });
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-    loadData();
+    const savedData = localStorage.getItem('teacherPlannerData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      setCalendar(data.calendar || {});
+      setUnits(data.units || []);
+      setClasses(data.classes || []);
+    }
   }, []);
 
-  // Auto-save data changes
+  // Save data when it changes
   React.useEffect(() => {
-    const saveData = () => {
-      try {
-        localStorage.setItem('teacherPlannerData', JSON.stringify({
-          calendar,
-          units,
-          classes,
-          templates,
-          lessonPlans,
-          assessments,
-          settings
-        }));
-      } catch (error) {
-        console.error('Error saving data:', error);
-      }
-    };
+    localStorage.setItem('teacherPlannerData', JSON.stringify({
+      calendar,
+      units,
+      classes
+    }));
+  }, [calendar, units, classes]);
 
-    const debounceTimer = setTimeout(saveData, 1000);
-    return () => clearTimeout(debounceTimer);
-  }, [calendar, units, classes, templates, lessonPlans, assessments, settings]);
-
-  // Calendar Logic
-  const calculateDayType = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    if (calendar[dateStr]) return calendar[dateStr];
-    
-    const previousDates = Object.keys(calendar)
-      .filter(d => d < dateStr)
-      .sort((a, b) => new Date(b) - new Date(a));
-    
-    if (previousDates.length === 0) {
-      return settings.defaultDayType;
-    }
-
-    let lastRegularDay = null;
-    let skipDays = 0;
-
-    for (const d of previousDates) {
-      const type = calendar[d];
-      if (type === DAY_TYPES.ODD || type === DAY_TYPES.EVEN) {
-        lastRegularDay = { date: d, type };
-        break;
-      }
-      skipDays++;
-    }
-
-    if (!lastRegularDay) return settings.defaultDayType;
-
-    const daysDiff = Math.floor(
-      (new Date(dateStr) - new Date(lastRegularDay.date)) / (1000 * 60 * 60 * 24)
-    );
-    
-    const effectiveDays = daysDiff - skipDays;
-    return effectiveDays % 2 === 0 
-      ? lastRegularDay.type 
-      : (lastRegularDay.type === DAY_TYPES.ODD ? DAY_TYPES.EVEN : DAY_TYPES.ODD);
-  };
-
+  // Calendar Functions
   const updateDayType = (date, type) => {
     const dateStr = date.toISOString().split('T')[0];
     setCalendar(prev => ({
@@ -158,159 +58,310 @@ const TeacherPlanner = () => {
     }));
   };
 
-  // Unit Management
-  const addUnit = (unitData) => {
+  const getDayType = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return calendar[dateStr] || 'odd';
+  };
+
+  // Unit Functions
+  const addUnit = () => {
     const newUnit = {
       id: Date.now(),
-      title: unitData.title || 'New Unit',
-      description: unitData.description || '',
-      gradeLevel: unitData.gradeLevel,
-      startDate: unitData.startDate,
-      endDate: unitData.endDate,
-      standards: unitData.standards || [],
-      objectives: unitData.objectives || [],
-      lessons: [],
-      assessments: [],
-      resources: [],
-      notes: ''
+      title: 'New Unit',
+      description: '',
+      lessons: []
     };
     setUnits(prev => [...prev, newUnit]);
-    return newUnit.id;
+    setCurrentUnit(newUnit);
   };
 
-  // Lesson Management
-  const addLesson = (unitId, lessonData) => {
-    const newLesson = {
-      id: Date.now(),
-      title: lessonData.title || 'New Lesson',
-      description: lessonData.description || '',
-      date: lessonData.date,
-      dayType: calculateDayType(new Date(lessonData.date)),
-      objectives: lessonData.objectives || [],
-      activities: lessonData.activities || [],
-      materials: lessonData.materials || [],
-      homework: lessonData.homework || '',
-      assessments: lessonData.assessments || [],
-      differentiation: lessonData.differentiation || {},
-      notes: ''
-    };
+  const updateUnit = (id, updates) => {
+    setUnits(prev => prev.map(unit => 
+      unit.id === id ? { ...unit, ...updates } : unit
+    ));
+  };
 
-    setUnits(prev => prev.map(unit => {
-      if (unit.id === unitId) {
+  // Class Functions
+  const addClass = () => {
+    setClasses(prev => [...prev, {
+      id: Date.now(),
+      name: 'New Class',
+      grade: GRADE_LEVELS[0],
+      period: 1,
+      students: []
+    }]);
+  };
+
+  const addStudent = (classId) => {
+    setClasses(prev => prev.map(cls => {
+      if (cls.id === classId) {
         return {
-          ...unit,
-          lessons: [...unit.lessons, newLesson]
+          ...cls,
+          students: [...cls.students, {
+            id: Date.now(),
+            name: 'New Student',
+            status: []
+          }]
         };
       }
-      return unit;
+      return cls;
     }));
-    return newLesson.id;
   };
 
-  // Class Management
-  const addClass = (classData) => {
-    const newClass = {
-      id: Date.now(),
-      name: classData.name || 'New Class',
-      gradeLevel: classData.gradeLevel,
-      period: classData.period,
-      dayType: classData.dayType,
-      room: classData.room || '',
-      students: [],
-      attendance: {},
-      assignments: [],
-      notes: ''
-    };
-    setClasses(prev => [...prev, newClass]);
-    return newClass.id;
-  };
-
+  // Render Functions
   const renderCalendar = () => {
-    const today = new Date(selectedDate);
-    const month = today.getMonth();
-    const year = today.getFullYear();
+    const month = selectedDate.getMonth();
+    const year = selectedDate.getFullYear();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    // Calendar Header
-    const header = React.createElement('div', { className: 'calendar-header' },
-      React.createElement('button', { 
-        onClick: () => setSelectedDate(new Date(year, month - 1))
-      }, '←'),
-      React.createElement('h2', null, 
-        new Date(year, month).toLocaleDateString('default', { month: 'long', year: 'numeric' })
-      ),
-      React.createElement('button', {
-        onClick: () => setSelectedDate(new Date(year, month + 1))
-      }, '→')
-    );
-
-    // Day Names
-    const dayLabels = React.createElement('div', { className: 'day-names' },
-      dayNames.map(name => 
-        React.createElement('div', { key: name, className: 'day-name' }, name)
-      )
-    );
-
-    // Calendar Grid
     const days = [];
+
+    // Add header for days of week
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayNames.forEach(name => {
+      days.push(React.createElement('div', { 
+        key: `header-${name}`,
+        className: 'calendar-header-cell'
+      }, name));
+    });
+
+    // Add empty cells for first week
     for (let i = 0; i < firstDay.getDay(); i++) {
       days.push(React.createElement('div', { 
-        key: `empty-${i}`, 
-        className: 'calendar-day empty' 
+        key: `empty-${i}`,
+        className: 'calendar-day empty'
       }));
     }
 
+    // Add days of month
     for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
-      const dateStr = date.toISOString().split('T')[0];
-      const dayType = calendar[dateStr] || calculateDayType(date);
-      const isSelected = dateStr === selectedDate.toISOString().split('T')[0];
+      const currentDate = new Date(date);
+      const dayType = getDayType(currentDate);
       
-      days.push(
+      days.push(React.createElement('div', {
+        key: currentDate.toISOString(),
+        className: `calendar-day ${dayType}`,
+        onClick: () => {
+          setSelectedDate(currentDate);
+          const newType = dayType === 'odd' ? 'even' : 'odd';
+          updateDayType(currentDate, newType);
+        }
+      }, [
+        React.createElement('div', { 
+          key: 'date',
+          className: 'date-number'
+        }, currentDate.getDate()),
         React.createElement('div', {
-          key: dateStr,
-          className: `calendar-day ${isSelected ? 'selected' : ''} ${dayType}`,
-          onClick: () => setSelectedDate(new Date(date))
-        },
-          React.createElement('div', { className: 'date-number' }, date.getDate()),
-          React.createElement('div', { className: 'day-type' }, dayType)
-        )
-      );
+          key: 'type',
+          className: 'day-type'
+        }, dayType)
+      ]));
     }
 
-    return React.createElement('div', { className: 'calendar-container' },
-      header,
-      React.createElement('div', { className: 'calendar-grid' },
-        dayLabels,
-        React.createElement('div', { className: 'days-grid' }, days)
-      )
-    );
+    return React.createElement('div', { className: 'calendar-container' }, [
+      React.createElement('div', { key: 'nav', className: 'month-nav' }, [
+        React.createElement('button', {
+          key: 'prev',
+          onClick: () => setSelectedDate(new Date(year, month - 1))
+        }, '←'),
+        React.createElement('h2', { key: 'title' },
+          `${selectedDate.toLocaleString('default', { month: 'long' })} ${year}`
+        ),
+        React.createElement('button', {
+          key: 'next',
+          onClick: () => setSelectedDate(new Date(year, month + 1))
+        }, '→')
+      ]),
+      React.createElement('div', { 
+        key: 'grid',
+        className: 'calendar-grid'
+      }, days)
+    ]);
+  };
+
+  const renderUnits = () => {
+    return React.createElement('div', { className: 'units-container' }, [
+      React.createElement('div', { key: 'header', className: 'units-header' }, [
+        React.createElement('h2', { key: 'title' }, 'Units'),
+        React.createElement('button', {
+          key: 'add',
+          onClick: addUnit
+        }, 'Add Unit')
+      ]),
+      React.createElement('div', { 
+        key: 'list',
+        className: 'units-list'
+      }, units.map(unit => 
+        React.createElement('div', {
+          key: unit.id,
+          className: 'unit-item'
+        }, [
+          React.createElement('input', {
+            key: 'title',
+            value: unit.title,
+            onChange: (e) => updateUnit(unit.id, { title: e.target.value }),
+            className: 'unit-title'
+          }),
+          React.createElement('textarea', {
+            key: 'desc',
+            value: unit.description,
+            onChange: (e) => updateUnit(unit.id, { description: e.target.value }),
+            className: 'unit-description',
+            placeholder: 'Unit description...'
+          })
+        ])
+      ))
+    ]);
+  };
+
+  const renderClasses = () => {
+    return React.createElement('div', { className: 'classes-container' }, [
+      React.createElement('div', { key: 'header', className: 'classes-header' }, [
+        React.createElement('h2', { key: 'title' }, 'Classes'),
+        React.createElement('button', {
+          key: 'add',
+          onClick: addClass
+        }, 'Add Class')
+      ]),
+      React.createElement('div', {
+        key: 'list',
+        className: 'classes-list'
+      }, classes.map(cls => 
+        React.createElement('div', {
+          key: cls.id,
+          className: 'class-item'
+        }, [
+          React.createElement('input', {
+            key: 'name',
+            value: cls.name,
+            onChange: (e) => {
+              setClasses(prev => prev.map(c => 
+                c.id === cls.id ? { ...c, name: e.target.value } : c
+              ));
+            },
+            className: 'class-name'
+          }),
+          React.createElement('button', {
+            key: 'add-student',
+            onClick: () => addStudent(cls.id)
+          }, 'Add Student'),
+          React.createElement('div', {
+            key: 'students',
+            className: 'student-list'
+          }, cls.students.map(student =>
+            React.createElement('div', {
+              key: student.id,
+              className: 'student-item'
+            }, [
+              React.createElement('input', {
+                key: 'name',
+                value: student.name,
+                onChange: (e) => {
+                  setClasses(prev => prev.map(c => 
+                    c.id === cls.id ? {
+                      ...c,
+                      students: c.students.map(s =>
+                        s.id === student.id ? { ...s, name: e.target.value } : s
+                      )
+                    } : c
+                  ));
+                },
+                className: 'student-name'
+              })
+            ])
+          ))
+        ])
+      ))
+    ]);
   };
 
   // Main Render
-  return React.createElement('div', { className: 'teacher-planner' },
-    React.createElement('nav', { className: 'planner-nav' },
+  return React.createElement('div', { className: 'teacher-planner' }, [
+    React.createElement('nav', { key: 'nav', className: 'planner-nav' }, [
       React.createElement('button', {
+        key: 'calendar',
         onClick: () => setView('calendar'),
         className: view === 'calendar' ? 'active' : ''
       }, 'Calendar'),
       React.createElement('button', {
+        key: 'units',
         onClick: () => setView('units'),
         className: view === 'units' ? 'active' : ''
       }, 'Units'),
       React.createElement('button', {
+        key: 'classes',
         onClick: () => setView('classes'),
         className: view === 'classes' ? 'active' : ''
       }, 'Classes')
-    ),
-    React.createElement('main', { className: 'planner-content' },
+    ]),
+    React.createElement('main', { 
+      key: 'main',
+      className: 'planner-content'
+    }, 
       view === 'calendar' ? renderCalendar() :
-      view === 'units' ? renderUnitPlanner() :
-      view === 'classes' ? renderClassManager() :
-      null
-    )
-  );
+      view === 'units' ? renderUnits() :
+      view === 'classes' ? renderClasses() : null
+    ),
+    React.createElement('style', { key: 'styles' }, `
+      .teacher-planner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .planner-nav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .planner-nav button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .planner-nav button.active {
+        background: #007bff;
+        color: white;
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+      }
+      .calendar-day {
+        padding: 10px;
+        border: 1px solid #ddd;
+        min-height: 80px;
+        cursor: pointer;
+      }
+      .calendar-day.odd { background: #f0f7ff; }
+      .calendar-day.even { background: #fff0f0; }
+      .unit-item, .class-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      input, textarea {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+    `)
+  ]);
 };
 
 // Initialize function
