@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Teacher Planner</title>
     
+    <!-- Favicon -->
+    <link rel="icon" href="data:,">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Trebuchet+MS:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap" rel="stylesheet">
     
     <!-- React and ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -71,9 +74,6 @@
         background-color: var(--accent-secondary);
       }
     </style>
-    
-    <!-- Main app script -->
-    <script src="/teacher-planner/pages/TeacherPlanner.js" type="module"></script>
   </head>
   <body>
     <div id="login-container" class="auth-container">
@@ -104,6 +104,14 @@
         messagingSenderId: "52595844350",
         appId: "1:52595844350:web:1de975e598d5ce70a131af",
         measurementId: "G-YHX3LGFLEL"
+      };
+
+      // Initialize React component
+      window.initializePlanner = function(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+          ReactDOM.render(React.createElement(TeacherPlanner), container);
+        }
       };
 
       try {
