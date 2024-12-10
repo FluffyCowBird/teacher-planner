@@ -1,6 +1,7 @@
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 
+const TeacherPlanner = () => {
 // ============= CONSTANTS ===============
 const DAY_TYPES = {
   ODD: 'odd',
