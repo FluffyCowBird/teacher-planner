@@ -38,6 +38,83 @@ const addDays = (date, days) => {
   return result;
 };
 
+// Add additional input validation
+const validateResourceUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+};
+
+// Enhance sanitization
+const enhancedSanitizeInput = (input, type = 'text') => {
+  if (typeof input !== 'string') return '';
+  let sanitized = input.trim();
+  
+  switch(type) {
+    case 'html':
+      // Remove all HTML tags for safety
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
+      break;
+    case 'email':
+      // Basic email sanitization
+      sanitized = sanitized.toLowerCase().replace(/[^a-z0-9@._-]/g, '');
+      break;
+    case 'filename':
+      // Safe filename characters only
+      sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '');
+      break;
+    default:
+      // Basic XSS prevention
+      sanitized = sanitized.replace(/[<>{}]/g, '');
+  }
+  
+  return sanitized;
+};
+
+// Add data validation before save
+const validateDataBeforeSave = (data) => {
+  const validationRules = {
+    standards: (standard) => (
+      standard.code && 
+      standard.subject && 
+      GRADE_LEVELS.includes(standard.gradeLevel)
+    ),
+    resources: (resource) => (
+      resource.title && 
+      Object.values(RESOURCE_TYPES).includes(resource.type) &&
+      (!resource.url || validateResourceUrl(resource.url))
+    ),
+    assessments: (assessment) => (
+      assessment.title &&
+      typeof assessment.totalPoints === 'number' &&
+      Array.isArray(assessment.questions)
+    )
+  };
+
+  return Object.entries(validationRules).every(([key, validate]) => {
+    if (!data[key]) return true;
+    return Object.values(data[key]).every(validate);
+  });
+};
+
+// Enhanced error handling
+const handleError = (error, context) => {
+  console.error(`Error in ${context}:`, error);
+  let userMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+  
+  if (error.code === 'QUOTA_EXCEEDED_ERR') {
+    userMessage = 'Storage quota exceeded. Please delete some items.';
+  } else if (error.name === 'SecurityError') {
+    userMessage = 'Security validation failed. Please check your input.';
+  }
+  
+  setError(userMessage);
+  return null;
+};
+
 // Constants
 const DAY_TYPES = {
   ODD: 'odd',
@@ -123,6 +200,11 @@ const TeacherPlanner = () => {
   const [lessonTemplates, setLessonTemplates] = React.useState([]);
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [standards, setStandards] = React.useState({});
+const [resources, setResources] = React.useState({});
+const [assessments, setAssessments] = React.useState({});
+const [communicationTemplates, setCommunicationTemplates] = React.useState({});
+const [unitConnections, setUnitConnections] = React.useState({});
   const [filters, setFilters] = React.useState({
     gradeLevel: null,
     dayType: null,
@@ -167,6 +249,80 @@ const TeacherPlanner = () => {
   }, []);
 
   // Save data to localStorage with debounce
+  // Update the saveData callback to include new state
+const saveData = React.useCallback(
+  debounce(() => {
+    try {
+      const dataToSave = {
+        calendar,
+        units,
+        classes,
+        students,
+        lessonTemplates,
+        // Add new state
+        standards,
+        resources,
+        assessments,
+        communicationTemplates,
+        unitConnections
+      };
+      localStorage.setItem('teacherPlannerData', JSON.stringify(dataToSave));
+      setError(null);
+    } catch (err) {
+      console.error('Save error:', err);
+      setError(ERROR_MESSAGES.STORAGE_ERROR);
+    }
+  }, 1000),
+  [calendar, units, classes, students, lessonTemplates, 
+   standards, resources, assessments, communicationTemplates, unitConnections]
+);
+
+// First, your loadSavedData function should end as you showed:
+  const loadSavedData = () => {
+    try {
+      setLoading(true);
+      const savedData = localStorage.getItem('teacherPlannerData');
+      if (!savedData) return;
+
+      const parsed = JSON.parse(savedData);
+      if (typeof parsed !== 'object') throw new Error(ERROR_MESSAGES.INVALID_INPUT);
+
+      // Validate and transform dates in calendar
+      const validatedCalendar = {};
+      Object.entries(parsed.calendar || {}).forEach(([dateStr, value]) => {
+        if (validateDate(new Date(dateStr))) {
+          validatedCalendar[dateStr] = value;
+        }
+      });
+
+      setCalendar(validatedCalendar);
+      setUnits(parsed.units || []);
+      setClasses(parsed.classes || []);
+      setStudents(parsed.students || {});
+      setLessonTemplates(parsed.lessonTemplates || []);
+    
+      // Load new state
+      setStandards(parsed.standards || {});
+      setResources(parsed.resources || {});
+      setAssessments(parsed.assessments || {});
+      setCommunicationTemplates(parsed.communicationTemplates || {});
+      setUnitConnections(parsed.unitConnections || {});
+    
+      setError(null);
+    } catch (err) {
+      console.error('Load error:', err);
+      setError(ERROR_MESSAGES.LOAD_ERROR);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Then add these useEffect hooks and saveData function:
+  React.useEffect(() => {
+    loadSavedData();
+  }, []);
+
+  // Save data to localStorage with debounce
   const saveData = React.useCallback(
     debounce(() => {
       try {
@@ -175,7 +331,13 @@ const TeacherPlanner = () => {
           units,
           classes,
           students,
-          lessonTemplates
+          lessonTemplates,
+          // Add new state
+          standards,
+          resources,
+          assessments,
+          communicationTemplates,
+          unitConnections
         };
         localStorage.setItem('teacherPlannerData', JSON.stringify(dataToSave));
         setError(null);
@@ -184,12 +346,15 @@ const TeacherPlanner = () => {
         setError(ERROR_MESSAGES.STORAGE_ERROR);
       }
     }, 1000),
-    [calendar, units, classes, students, lessonTemplates]
+    [calendar, units, classes, students, lessonTemplates, 
+     standards, resources, assessments, communicationTemplates, unitConnections]
   );
 
   React.useEffect(() => {
     saveData();
-  }, [calendar, units, classes, students, lessonTemplates, saveData]);
+  }, [calendar, units, classes, students, lessonTemplates, 
+      standards, resources, assessments, communicationTemplates, 
+      unitConnections, saveData]);
 
   // Initialize calendar on mount if empty
   React.useEffect(() => {
@@ -198,51 +363,7 @@ const TeacherPlanner = () => {
     }
   }, [calendar, loading]);
 
-  // ============= ERROR HANDLING ===============
-  React.useEffect(() => {
-    if (error) {
-      const timeout = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timeout);
-    }
-  }, [error]);
-
-  // Error display component
-  const ErrorMessage = React.useCallback(() => {
-    if (!error) return null;
-    return React.createElement('div', {
-      className: 'error-message',
-      style: {
-        backgroundColor: THEME.colors.error,
-        color: THEME.colors.textPrimary,
-        padding: '1rem',
-        margin: '1rem 0',
-        borderRadius: '4px',
-        position: 'fixed',
-        top: '1rem',
-        right: '1rem',
-        zIndex: 1000
-      }
-    }, error);
-  }, [error]);
-
-  // Loading indicator component
-  const LoadingSpinner = React.useCallback(() => {
-    if (!loading) return null;
-    return React.createElement('div', {
-      className: 'loading-spinner',
-      style: {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        backgroundColor: THEME.colors.bgSecondary,
-        padding: '2rem',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-        zIndex: 1000
-      }
-    }, 'Loading...');
-  }, [loading]);
+  // ============= CALENDAR MANAGEMENT ===============
 
   // ============= CALENDAR MANAGEMENT ===============
   const initializeCalendarSequence = React.useCallback((startDate, startType) => {
@@ -3331,6 +3452,110 @@ return React.createElement('div', {
   ])
 ]);
 };
+
+// Firebase configuration placeholder
+const FIREBASE_COLLECTIONS = {
+  USERS: 'users',
+  CALENDAR: 'calendar',
+  UNITS: 'units',
+  CLASSES: 'classes',
+  STUDENTS: 'students',
+  STANDARDS: 'standards',
+  RESOURCES: 'resources',
+  ASSESSMENTS: 'assessments',
+  TEMPLATES: 'templates',
+  CONNECTIONS: 'connections'
+};
+
+// Prepare data structure for Firebase
+const prepareDataForFirebase = (data, userId) => {
+  const timestamp = new Date().toISOString();
+  return {
+    ...data,
+    userId,
+    createdAt: data.createdAt || timestamp,
+    updatedAt: timestamp
+  };
+};
+
+// Future Firebase operations (commented out for now)
+/*
+const firebaseOperations = {
+  saveToFirestore: async (collection, data, id = null) => {
+    const db = firebase.firestore();
+    const userId = firebase.auth().currentUser?.uid;
+    if (!userId) throw new Error('User not authenticated');
+
+    const preparedData = prepareDataForFirebase(data, userId);
+    
+    if (id) {
+      await db.collection(collection).doc(id).set(preparedData);
+      return id;
+    } else {
+      const doc = await db.collection(collection).add(preparedData);
+      return doc.id;
+    }
+  },
+
+  loadFromFirestore: async (collection, query = null) => {
+    const db = firebase.firestore();
+    const userId = firebase.auth().currentUser?.uid;
+    if (!userId) throw new Error('User not authenticated');
+
+    let ref = db.collection(collection).where('userId', '==', userId);
+    if (query) {
+      Object.entries(query).forEach(([field, value]) => {
+        ref = ref.where(field, '==', value);
+      });
+    }
+
+    const snapshot = await ref.get();
+    return Object.fromEntries(
+      snapshot.docs.map(doc => [doc.id, doc.data()])
+    );
+  }
+};
+*/
+
+// Add Firestore security rules template (to be implemented later)
+/*
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Base rule for all collections
+    match /{collection}/{document} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+  }
+}
+*/
+
+// Add Storage security rules template (to be implemented later)
+/*
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+                   request.auth.uid == userId && 
+                   request.resource.size < 5 * 1024 * 1024 && // 5MB max
+                   request.resource.contentType.matches('application/.*|image/.*|text/.*');
+    }
+  }
+}
+*/
 
 // Export the component
 export default TeacherPlanner;
