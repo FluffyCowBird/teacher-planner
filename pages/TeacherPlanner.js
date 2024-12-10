@@ -1923,7 +1923,6 @@ const [unitConnections, setUnitConnections] = React.useState({});
   }, [updateUnit, showUnitDetails, showUnitPlanning, calculateUnitProgress]);
 
   // ============= STANDARDS MANAGEMENT ===============
-const [standards, setStandards] = React.useState({});
 const [selectedSubject, setSelectedSubject] = React.useState(null);
 
 const SUBJECTS = {
