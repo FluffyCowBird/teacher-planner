@@ -1867,4 +1867,1470 @@ const TeacherPlanner = () => {
     ]);
   }, [updateUnit, showUnitDetails, showUnitPlanning, calculateUnitProgress]);
 
-  
+  // ============= STANDARDS MANAGEMENT ===============
+const [standards, setStandards] = React.useState({});
+const [selectedSubject, setSelectedSubject] = React.useState(null);
+
+const SUBJECTS = {
+  MATH: 'math',
+  ELA: 'ela',
+  SCIENCE: 'science',
+  SOCIAL_STUDIES: 'social_studies'
+};
+
+const addStandard = React.useCallback((standardData) => {
+  try {
+    const newStandard = {
+      id: `standard_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      code: sanitizeInput(standardData.code),
+      subject: standardData.subject,
+      gradeLevel: GRADE_LEVELS.includes(standardData.gradeLevel) ? 
+        standardData.gradeLevel : null,
+      description: sanitizeInput(standardData.description),
+      category: sanitizeInput(standardData.category),
+      subcategory: sanitizeInput(standardData.subcategory),
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setStandards(prev => ({
+      ...prev,
+      [newStandard.id]: newStandard
+    }));
+
+    return newStandard.id;
+  } catch (err) {
+    console.error('Standard creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+const updateStandard = React.useCallback((standardId, updates) => {
+  if (!standardId || typeof updates !== 'object') {
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return;
+  }
+
+  setStandards(prev => ({
+    ...prev,
+    [standardId]: {
+      ...prev[standardId],
+      ...Object.fromEntries(
+        Object.entries(updates).map(([key, value]) => [key, sanitizeInput(value)])
+      ),
+      lastModified: new Date().toISOString()
+    }
+  }));
+}, []);
+
+// ============= RESOURCE LIBRARY ===============
+const [resources, setResources] = React.useState({});
+const [resourceTags, setResourceTags] = React.useState([]);
+
+const RESOURCE_TYPES = {
+  DOCUMENT: 'document',
+  VIDEO: 'video',
+  WEBSITE: 'website',
+  ASSESSMENT: 'assessment',
+  ACTIVITY: 'activity'
+};
+
+const addResource = React.useCallback(async (resourceData, file = null) => {
+  try {
+    const newResource = {
+      id: `resource_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: sanitizeInput(resourceData.title),
+      type: RESOURCE_TYPES[resourceData.type] || RESOURCE_TYPES.DOCUMENT,
+      description: sanitizeInput(resourceData.description),
+      tags: (resourceData.tags || []).map(tag => sanitizeInput(tag)),
+      standards: resourceData.standards || [],
+      url: sanitizeInput(resourceData.url),
+      gradeLevel: GRADE_LEVELS.includes(resourceData.gradeLevel) ? 
+        resourceData.gradeLevel : null,
+      subject: resourceData.subject,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    // Once we switch to Firebase, this will upload the file to storage
+    if (file) {
+      newResource.fileName = file.name;
+      // TODO: Add Firebase storage upload logic here
+    }
+
+    setResources(prev => ({
+      ...prev,
+      [newResource.id]: newResource
+    }));
+
+    // Update tag list
+    setResourceTags(prev => [
+      ...new Set([...prev, ...(resourceData.tags || [])])
+    ]);
+
+    return newResource.id;
+  } catch (err) {
+    console.error('Resource creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+// ============= ASSESSMENT TOOLS ===============
+const [assessments, setAssessments] = React.useState({});
+
+const QUESTION_TYPES = {
+  MULTIPLE_CHOICE: 'multiple_choice',
+  SHORT_ANSWER: 'short_answer',
+  ESSAY: 'essay',
+  MATCHING: 'matching',
+  TRUE_FALSE: 'true_false'
+};
+
+const addAssessment = React.useCallback((assessmentData) => {
+  try {
+    const newAssessment = {
+      id: `assessment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: sanitizeInput(assessmentData.title),
+      description: sanitizeInput(assessmentData.description),
+      standards: assessmentData.standards || [],
+      timeLimit: assessmentData.timeLimit || null,
+      totalPoints: assessmentData.totalPoints || 0,
+      questions: [],
+      rubrics: {},
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setAssessments(prev => ({
+      ...prev,
+      [newAssessment.id]: newAssessment
+    }));
+
+    return newAssessment.id;
+  } catch (err) {
+    console.error('Assessment creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+const addQuestion = React.useCallback((assessmentId, questionData) => {
+  if (!assessmentId || typeof questionData !== 'object') {
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+
+  try {
+    const newQuestion = {
+      id: `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: QUESTION_TYPES[questionData.type] || QUESTION_TYPES.MULTIPLE_CHOICE,
+      text: sanitizeInput(questionData.text),
+      points: questionData.points || 1,
+      options: (questionData.options || []).map(opt => sanitizeInput(opt)),
+      correctAnswer: questionData.correctAnswer,
+      rubric: questionData.rubric || null,
+      standards: questionData.standards || []
+    };
+
+    setAssessments(prev => ({
+      ...prev,
+      [assessmentId]: {
+        ...prev[assessmentId],
+        questions: [...prev[assessmentId].questions, newQuestion],
+        lastModified: new Date().toISOString()
+      }
+    }));
+
+    return newQuestion.id;
+  } catch (err) {
+    console.error('Question creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+// ============= PROGRESS REPORTING ===============
+const generateProgressReport = React.useCallback((classId, startDate, endDate) => {
+  if (!classId || !validateDate(startDate) || !validateDate(endDate)) {
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+
+  try {
+    const classStudents = students[classId] || [];
+    const reportData = {
+      generated: new Date().toISOString(),
+      class: classes.find(c => c.id === classId),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      students: classStudents.map(student => ({
+        id: student.id,
+        name: student.name,
+        attendance: calculateAttendanceStats(student, startDate, endDate),
+        standards: calculateStandardsMastery(student, startDate, endDate),
+        assessments: calculateAssessmentProgress(student, startDate, endDate)
+      }))
+    };
+
+    return reportData;
+  } catch (err) {
+    console.error('Progress report generation error:', err);
+    setError(ERROR_MESSAGES.UNKNOWN_ERROR);
+    return null;
+  }
+}, [students, classes]);
+
+// Helper functions for progress reporting
+const calculateAttendanceStats = (student, startDate, endDate) => {
+  const stats = {
+    present: 0,
+    absent: 0,
+    tardy: 0,
+    total: 0
+  };
+
+  Object.entries(student.attendance || {}).forEach(([dateStr, record]) => {
+    const date = new Date(dateStr);
+    if (date >= startDate && date <= endDate) {
+      stats.total++;
+      if (record.status === STATUS_TYPES.ATTENDANCE.PRESENT.label) stats.present++;
+      if (record.status === STATUS_TYPES.ATTENDANCE.ABSENT.label) stats.absent++;
+      if (record.status === STATUS_TYPES.ATTENDANCE.TARDY.label) stats.tardy++;
+    }
+  });
+
+  return stats;
+};
+
+const calculateStandardsMastery = (student, startDate, endDate) => {
+  // Implementation will depend on how standards tracking is stored
+  return [];
+};
+
+const calculateAssessmentProgress = (student, startDate, endDate) => {
+  // Implementation will depend on how assessment results are stored
+  return [];
+};
+
+// ============= PARENT COMMUNICATION ===============
+const [communicationTemplates, setCommunicationTemplates] = React.useState({});
+
+const TEMPLATE_TYPES = {
+  PROGRESS_UPDATE: 'progress_update',
+  BEHAVIOR_NOTIFICATION: 'behavior_notification',
+  ABSENCE_FOLLOW_UP: 'absence_follow_up',
+  ASSIGNMENT_REMINDER: 'assignment_reminder',
+  CUSTOM: 'custom'
+};
+
+const addCommunicationTemplate = React.useCallback((templateData) => {
+  try {
+    const newTemplate = {
+      id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: TEMPLATE_TYPES[templateData.type] || TEMPLATE_TYPES.CUSTOM,
+      title: sanitizeInput(templateData.title),
+      subject: sanitizeInput(templateData.subject),
+      body: sanitizeInput(templateData.body),
+      variables: templateData.variables || [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setCommunicationTemplates(prev => ({
+      ...prev,
+      [newTemplate.id]: newTemplate
+    }));
+
+    return newTemplate.id;
+  } catch (err) {
+    console.error('Template creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+const generateCommunication = React.useCallback((templateId, studentId, customData = {}) => {
+  if (!templateId || !studentId) {
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+
+  try {
+    const template = communicationTemplates[templateId];
+    const student = Object.values(students).flat().find(s => s.id === studentId);
+    
+    if (!template || !student) {
+      throw new Error('Template or student not found');
+    }
+
+    let subject = template.subject;
+    let body = template.body;
+
+    // Replace variables in template
+    const variables = {
+      studentName: student.name,
+      guardianEmail: student.guardianEmail,
+      date: new Date().toLocaleDateString(),
+      ...customData
+    };
+
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      subject = subject.replace(regex, value);
+      body = body.replace(regex, value);
+    });
+
+    return {
+      to: student.guardianEmail,
+      subject,
+      body
+    };
+  } catch (err) {
+    console.error('Communication generation error:', err);
+    setError(ERROR_MESSAGES.UNKNOWN_ERROR);
+    return null;
+  }
+}, [communicationTemplates, students]);
+
+// ============= CROSS-UNIT PLANNING ===============
+const [unitConnections, setUnitConnections] = React.useState({});
+
+const addUnitConnection = React.useCallback((connectionData) => {
+  try {
+    const newConnection = {
+      id: `connection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      units: connectionData.units,
+      type: sanitizeInput(connectionData.type),
+      description: sanitizeInput(connectionData.description),
+      standards: connectionData.standards || [],
+      resources: connectionData.resources || [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+
+    setUnitConnections(prev => ({
+      ...prev,
+      [newConnection.id]: newConnection
+    }));
+
+    return newConnection.id;
+  } catch (err) {
+    console.error('Unit connection creation error:', err);
+    setError(ERROR_MESSAGES.INVALID_INPUT);
+    return null;
+  }
+}, []);
+
+const findRelatedUnits = React.useCallback((unitId) => {
+  if (!unitId) return [];
+
+  try {
+    const connections = Object.values(unitConnections)
+      .filter(conn => conn.units.includes(unitId));
+    
+    const relatedUnitIds = new Set(
+      connections.flatMap(conn => conn.units.filter(id => id !== unitId))
+    );
+
+    return Array.from(relatedUnitIds)
+      .map(id => units.find(unit => unit.id === id))
+      .filter(Boolean);
+  } catch (err) {
+    console.error('Related units search error:', err);
+    setError(ERROR_MESSAGES.UNKNOWN_ERROR);
+    return [];
+  }
+}, [unitConnections, units]);
+
+// Firebase Integration Preparation
+const initializeFirebase = async () => {
+  // This function will be implemented when ready to switch to Firebase
+  // It will handle:
+  // 1. Setting up Firebase Auth listeners
+  // 2. Initializing Firestore collections
+  // 3. Setting up real-time data synchronization
+  // 4. Handling offline persistence
+};
+
+const syncDataToFirebase = async () => {
+  // This function will handle data synchronization with Firebase
+  // It will be called whenever local data changes
+};
+
+  // ============= STANDARDS LIBRARY UI ===============
+const renderStandardsLibrary = React.useCallback(() => {
+  return React.createElement('div', {
+    className: 'standards-library',
+    style: {
+      padding: '1rem',
+      backgroundColor: THEME.colors.bgPrimary,
+      borderRadius: '8px'
+    }
+  }, [
+    // Header with controls
+    React.createElement('div', {
+      className: 'standards-header',
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h2', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          margin: 0
+        }
+      }, 'Standards Library'),
+      React.createElement('div', {
+        className: 'standards-controls',
+        style: {
+          display: 'flex',
+          gap: '1rem'
+        }
+      }, [
+        React.createElement('button', {
+          onClick: () => showAddStandardModal(),
+          style: {
+            backgroundColor: THEME.colors.accentPrimary,
+            color: THEME.colors.textPrimary,
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }
+        }, 'Add Standard'),
+        React.createElement('select', {
+          value: selectedSubject || '',
+          onChange: (e) => setSelectedSubject(e.target.value || null),
+          style: {
+            padding: '0.5rem',
+            backgroundColor: THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            border: `1px solid ${THEME.colors.borderColor}`,
+            borderRadius: '4px'
+          }
+        }, [
+          React.createElement('option', { value: '' }, 'All Subjects'),
+          ...Object.entries(SUBJECTS).map(([key, value]) =>
+            React.createElement('option', { key, value }, key.replace('_', ' '))
+          )
+        ])
+      ])
+    ]),
+
+    // Standards Grid
+    React.createElement('div', {
+      className: 'standards-grid',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+        gap: '1rem'
+      }
+    }, Object.values(standards)
+      .filter(standard => !selectedSubject || standard.subject === selectedSubject)
+      .map(standard => renderStandardCard(standard)))
+  ]);
+}, [standards, selectedSubject, showAddStandardModal]);
+
+const renderStandardCard = React.useCallback((standard) => {
+  return React.createElement('div', {
+    key: standard.id,
+    className: 'standard-card',
+    style: {
+      backgroundColor: THEME.colors.bgSecondary,
+      padding: '1rem',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }
+  }, [
+    React.createElement('div', {
+      className: 'standard-header',
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '1rem'
+      }
+    }, [
+      React.createElement('span', {
+        style: {
+          fontWeight: 'bold',
+          color: THEME.colors.textPrimary
+        }
+      }, standard.code),
+      React.createElement('span', {
+        style: {
+          color: THEME.colors.textSecondary
+        }
+      }, `Grade ${standard.gradeLevel}`)
+    ]),
+    React.createElement('p', {
+      style: {
+        margin: '0 0 1rem 0',
+        color: THEME.colors.textPrimary
+      }
+    }, standard.description),
+    React.createElement('div', {
+      className: 'standard-footer',
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }
+    }, [
+      React.createElement('span', {
+        style: {
+          color: THEME.colors.textSecondary,
+          fontSize: '0.9rem'
+        }
+      }, standard.category),
+      React.createElement('button', {
+        onClick: () => showStandardDetails(standard.id),
+        style: {
+          backgroundColor: THEME.colors.accentSecondary,
+          color: THEME.colors.textPrimary,
+          padding: '0.5rem',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Details')
+    ])
+  ]);
+}, [showStandardDetails]);
+
+// ============= RESOURCE LIBRARY UI ===============
+const renderResourceLibrary = React.useCallback(() => {
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedTags, setSelectedTags] = React.useState([]);
+  const [selectedType, setSelectedType] = React.useState(null);
+
+  const filteredResources = Object.values(resources).filter(resource => {
+    const matchesSearch = searchTerm === '' || 
+      resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.every(tag => resource.tags.includes(tag));
+    const matchesType = !selectedType || resource.type === selectedType;
+    return matchesSearch && matchesTags && matchesType;
+  });
+
+  return React.createElement('div', {
+    className: 'resource-library',
+    style: {
+      padding: '1rem',
+      backgroundColor: THEME.colors.bgPrimary,
+      borderRadius: '8px'
+    }
+  }, [
+    // Header and Search
+    React.createElement('div', {
+      className: 'resource-header',
+      style: {
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('div', {
+        style: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1rem'
+        }
+      }, [
+        React.createElement('h2', {
+          style: {
+            fontFamily: THEME.fonts.title,
+            margin: 0
+          }
+        }, 'Resource Library'),
+        React.createElement('button', {
+          onClick: () => showAddResourceModal(),
+          style: {
+            backgroundColor: THEME.colors.accentPrimary,
+            color: THEME.colors.textPrimary,
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }
+        }, 'Add Resource')
+      ]),
+      React.createElement('input', {
+        type: 'text',
+        placeholder: 'Search resources...',
+        value: searchTerm,
+        onChange: (e) => setSearchTerm(e.target.value),
+        style: {
+          width: '100%',
+          padding: '0.75rem',
+          backgroundColor: THEME.colors.bgSecondary,
+          color: THEME.colors.textPrimary,
+          border: `1px solid ${THEME.colors.borderColor}`,
+          borderRadius: '4px',
+          marginBottom: '1rem'
+        }
+      }),
+      React.createElement('div', {
+        className: 'resource-filters',
+        style: {
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }
+      }, [
+        // Type filter
+        React.createElement('select', {
+          value: selectedType || '',
+          onChange: (e) => setSelectedType(e.target.value || null),
+          style: {
+            padding: '0.5rem',
+            backgroundColor: THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            border: `1px solid ${THEME.colors.borderColor}`,
+            borderRadius: '4px'
+          }
+        }, [
+          React.createElement('option', { value: '' }, 'All Types'),
+          ...Object.entries(RESOURCE_TYPES).map(([key, value]) =>
+            React.createElement('option', { key, value }, 
+              key.charAt(0) + key.slice(1).toLowerCase()
+            )
+          )
+        ]),
+        // Tag filter
+        React.createElement('div', {
+          className: 'tag-filters',
+          style: {
+            display: 'flex',
+            gap: '0.5rem',
+            flexWrap: 'wrap'
+          }
+        }, resourceTags.map(tag =>
+          React.createElement('button', {
+            key: tag,
+            onClick: () => setSelectedTags(prev => 
+              prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+            ),
+            style: {
+              backgroundColor: selectedTags.includes(tag) ? 
+                THEME.colors.accentPrimary : THEME.colors.bgSecondary,
+              color: THEME.colors.textPrimary,
+              padding: '0.25rem 0.5rem',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }
+          }, tag)
+        ))
+      ])
+    ]),
+
+    // Resource Grid
+    React.createElement('div', {
+      className: 'resource-grid',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+        gap: '1rem'
+      }
+    }, filteredResources.map(resource => renderResourceCard(resource)))
+  ]);
+}, [resources, resourceTags, showAddResourceModal]);
+
+const renderResourceCard = React.useCallback((resource) => {
+  return React.createElement('div', {
+    key: resource.id,
+    className: 'resource-card',
+    style: {
+      backgroundColor: THEME.colors.bgSecondary,
+      padding: '1rem',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }
+  }, [
+    React.createElement('div', {
+      className: 'resource-type-badge',
+      style: {
+        display: 'inline-block',
+        backgroundColor: THEME.colors.accentSecondary,
+        color: THEME.colors.textPrimary,
+        padding: '0.25rem 0.5rem',
+        borderRadius: '4px',
+        fontSize: '0.8rem',
+        marginBottom: '0.5rem'
+      }
+    }, resource.type),
+    React.createElement('h3', {
+      style: {
+        margin: '0 0 0.5rem 0',
+        fontFamily: THEME.fonts.title
+      }
+    }, resource.title),
+    React.createElement('p', {
+      style: {
+        margin: '0 0 1rem 0',
+        color: THEME.colors.textSecondary
+      }
+    }, resource.description),
+    React.createElement('div', {
+      className: 'resource-tags',
+      style: {
+        display: 'flex',
+        gap: '0.5rem',
+        flexWrap: 'wrap',
+        marginBottom: '1rem'
+      }
+    }, resource.tags.map(tag =>
+      React.createElement('span', {
+        key: tag,
+        style: {
+          backgroundColor: THEME.colors.bgPrimary,
+          color: THEME.colors.textSecondary,
+          padding: '0.25rem 0.5rem',
+          borderRadius: '4px',
+          fontSize: '0.8rem'
+        }
+      }, tag)
+    )),
+    React.createElement('div', {
+      className: 'resource-actions',
+      style: {
+        display: 'flex',
+        gap: '0.5rem'
+      }
+    }, [
+      React.createElement('button', {
+        onClick: () => showResourceDetails(resource.id),
+        style: {
+          flex: 1,
+          padding: '0.5rem',
+          backgroundColor: THEME.colors.accentSecondary,
+          color: THEME.colors.textPrimary,
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Details'),
+      resource.url && React.createElement('a', {
+        href: resource.url,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        style: {
+          flex: 1,
+          padding: '0.5rem',
+          backgroundColor: THEME.colors.accentPrimary,
+          color: THEME.colors.textPrimary,
+          textDecoration: 'none',
+          textAlign: 'center',
+          borderRadius: '4px'
+        }
+      }, 'Open')
+    ])
+  ]);
+}, [showResourceDetails]);
+
+// ============= ASSESSMENT TOOLS UI ===============
+const renderAssessmentBuilder = React.useCallback(() => {
+  const [selectedAssessment, setSelectedAssessment] = React.useState(null);
+
+  return React.createElement('div', {
+    className: 'assessment-builder',
+    style: {
+      padding: '1rem',
+      backgroundColor: THEME.colors.bgPrimary,
+      borderRadius: '8px'
+    }
+  }, [
+    // Header
+    React.createElement('div', {
+      className: 'assessment-header',
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h2', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          margin: 0
+        }
+      }, 'Assessment Builder'),
+      React.createElement('button', {
+        onClick: () => showNewAssessmentModal(),
+        style: {
+          backgroundColor: THEME.colors.accentPrimary,
+          color: THEME.colors.textPrimary,
+          padding: '0.5rem 1rem',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Create New Assessment')
+    ]),
+
+    // Assessment List and Editor
+    React.createElement('div', {
+      className: 'assessment-workspace',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '300px 1fr',
+        gap: '2rem'
+      }
+    }, [
+      // Assessment List
+      React.createElement('div', {
+        className: 'assessment-list',
+        style: {
+          backgroundColor: THEME.colors.bgSecondary,
+          padding: '1rem',
+          borderRadius: '8px'
+        }
+      }, [
+        React.createElement('h3', {
+          style: {
+            fontFamily: THEME.fonts.title,
+            marginTop: 0
+          }
+        }, 'My Assessments'),
+        React.createElement('div', {
+          className: 'assessment-items',
+          style: {
+            display: 'flex', flexDirection: 'column',
+            gap: '0.5rem'
+          }
+        }, Object.values(assessments).map(assessment =>
+          React.createElement('div', {
+            key: assessment.id,
+            onClick: () => setSelectedAssessment(assessment.id),
+            style: {
+              padding: '0.75rem',
+              backgroundColor: selectedAssessment === assessment.id ?
+                THEME.colors.accentSecondary : THEME.colors.bgPrimary,
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }
+          }, [
+            React.createElement('div', {
+              style: {
+                fontWeight: 'bold',
+                marginBottom: '0.25rem'
+              }
+            }, assessment.title),
+            React.createElement('div', {
+              style: {
+                fontSize: '0.8rem',
+                color: THEME.colors.textSecondary
+              }
+            }, `${assessment.questions.length} questions • ${assessment.totalPoints} points`)
+          ])
+        ))
+      ]),
+
+      // Assessment Editor
+      React.createElement('div', {
+        className: 'assessment-editor',
+        style: {
+          backgroundColor: THEME.colors.bgSecondary,
+          padding: '1rem',
+          borderRadius: '8px'
+        }
+      }, selectedAssessment ? renderAssessmentEditor(assessments[selectedAssessment]) :
+        React.createElement('div', {
+          style: {
+            textAlign: 'center',
+            color: THEME.colors.textSecondary,
+            padding: '2rem'
+          }
+        }, 'Select an assessment to edit or create a new one'))
+    ])
+  ]);
+}, [assessments, selectedAssessment, showNewAssessmentModal]);
+
+const renderAssessmentEditor = React.useCallback((assessment) => {
+  return React.createElement('div', {
+    className: 'assessment-editor-content'
+  }, [
+    // Assessment Details
+    React.createElement('div', {
+      className: 'assessment-details',
+      style: {
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('input', {
+        value: assessment.title,
+        onChange: (e) => updateAssessment(assessment.id, { 
+          title: sanitizeInput(e.target.value) 
+        }),
+        style: {
+          width: '100%',
+          padding: '0.75rem',
+          backgroundColor: THEME.colors.bgPrimary,
+          color: THEME.colors.textPrimary,
+          border: `1px solid ${THEME.colors.borderColor}`,
+          borderRadius: '4px',
+          marginBottom: '1rem',
+          fontSize: '1.2rem',
+          fontFamily: THEME.fonts.title
+        }
+      }),
+      React.createElement('textarea', {
+        value: assessment.description,
+        onChange: (e) => updateAssessment(assessment.id, { 
+          description: sanitizeInput(e.target.value) 
+        }),
+        placeholder: 'Assessment description...',
+        style: {
+          width: '100%',
+          padding: '0.75rem',
+          backgroundColor: THEME.colors.bgPrimary,
+          color: THEME.colors.textPrimary,
+          border: `1px solid ${THEME.colors.borderColor}`,
+          borderRadius: '4px',
+          minHeight: '100px',
+          resize: 'vertical'
+        }
+      })
+    ]),
+
+    // Questions List
+    React.createElement('div', {
+      className: 'questions-list',
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }
+    }, [
+      ...assessment.questions.map((question, index) => 
+        renderQuestionEditor(assessment.id, question, index)
+      ),
+      React.createElement('button', {
+        onClick: () => showAddQuestionModal(assessment.id),
+        style: {
+          padding: '1rem',
+          backgroundColor: THEME.colors.bgPrimary,
+          color: THEME.colors.textPrimary,
+          border: `2px dashed ${THEME.colors.borderColor}`,
+          borderRadius: '4px',
+          cursor: 'pointer',
+          textAlign: 'center'
+        }
+      }, '+ Add Question')
+    ])
+  ]);
+}, [updateAssessment, showAddQuestionModal]);
+
+// ============= PROGRESS REPORTING UI ===============
+const renderProgressReporting = React.useCallback(() => {
+  const [selectedClass, setSelectedClass] = React.useState(null);
+  const [dateRange, setDateRange] = React.useState({
+    start: new Date(),
+    end: new Date()
+  });
+
+  return React.createElement('div', {
+    className: 'progress-reporting',
+    style: {
+      padding: '1rem',
+      backgroundColor: THEME.colors.bgPrimary,
+      borderRadius: '8px'
+    }
+  }, [
+    // Header and Controls
+    React.createElement('div', {
+      className: 'report-controls',
+      style: {
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h2', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          marginBottom: '1rem'
+        }
+      }, 'Progress Reports'),
+      React.createElement('div', {
+        style: {
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }
+      }, [
+        // Class Selection
+        React.createElement('select', {
+          value: selectedClass || '',
+          onChange: (e) => setSelectedClass(e.target.value || null),
+          style: {
+            padding: '0.5rem',
+            backgroundColor: THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            border: `1px solid ${THEME.colors.borderColor}`,
+            borderRadius: '4px'
+          }
+        }, [
+          React.createElement('option', { value: '' }, 'Select Class'),
+          ...classes.map(cls =>
+            React.createElement('option', { key: cls.id, value: cls.id }, 
+              cls.name
+            )
+          )
+        ]),
+        // Date Range Inputs
+        React.createElement('input', {
+          type: 'date',
+          value: dateRange.start.toISOString().split('T')[0],
+          onChange: (e) => setDateRange(prev => ({
+            ...prev,
+            start: new Date(e.target.value)
+          })),
+          style: {
+            padding: '0.5rem',
+            backgroundColor: THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            border: `1px solid ${THEME.colors.borderColor}`,
+            borderRadius: '4px'
+          }
+        }),
+        React.createElement('input', {
+          type: 'date',
+          value: dateRange.end.toISOString().split('T')[0],
+          onChange: (e) => setDateRange(prev => ({
+            ...prev,
+            end: new Date(e.target.value)
+          })),
+          style: {
+            padding: '0.5rem',
+            backgroundColor: THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            border: `1px solid ${THEME.colors.borderColor}`,
+            borderRadius: '4px'
+          }
+        }),
+        // Generate Report Button
+        React.createElement('button', {
+          onClick: () => {
+            if (selectedClass) {
+              const report = generateProgressReport(
+                selectedClass, 
+                dateRange.start, 
+                dateRange.end
+              );
+              showProgressReport(report);
+            }
+          },
+          disabled: !selectedClass,
+          style: {
+            backgroundColor: selectedClass ? 
+              THEME.colors.accentPrimary : THEME.colors.bgSecondary,
+            color: THEME.colors.textPrimary,
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: selectedClass ? 'pointer' : 'not-allowed'
+          }
+        }, 'Generate Report')
+      ])
+    ]),
+
+    // Report Preview Area
+    selectedClass && React.createElement('div', {
+      className: 'report-preview',
+      style: {
+        backgroundColor: THEME.colors.bgSecondary,
+        padding: '1rem',
+        borderRadius: '8px'
+      }
+    }, renderReportPreview(selectedClass, dateRange))
+  ]);
+}, [classes, generateProgressReport, showProgressReport]);
+
+// ============= PARENT COMMUNICATION UI ===============
+const renderCommunicationCenter = React.useCallback(() => {
+  const [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  const [selectedStudents, setSelectedStudents] = React.useState([]);
+
+  return React.createElement('div', {
+    className: 'communication-center',
+    style: {
+      padding: '1rem',
+      backgroundColor: THEME.colors.bgPrimary,
+      borderRadius: '8px'
+    }
+  }, [
+    // Header
+    React.createElement('div', {
+      className: 'communication-header',
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h2', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          margin: 0
+        }
+      }, 'Communication Center'),
+      React.createElement('button', {
+        onClick: () => showNewTemplateModal(),
+        style: {
+          backgroundColor: THEME.colors.accentPrimary,
+          color: THEME.colors.textPrimary,
+          padding: '0.5rem 1rem',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Create Template')
+    ]),
+
+    // Communication Workspace
+    React.createElement('div', {
+      className: 'communication-workspace',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '300px 1fr',
+        gap: '2rem'
+      }
+    }, [
+      // Template List
+      React.createElement('div', {
+        className: 'template-list',
+        style: {
+          backgroundColor: THEME.colors.bgSecondary,
+          padding: '1rem',
+          borderRadius: '8px'
+        }
+      }, [
+        React.createElement('h3', {
+          style: {
+            fontFamily: THEME.fonts.title,
+            marginTop: 0
+          }
+        }, 'Templates'),
+        React.createElement('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }
+        }, Object.values(communicationTemplates).map(template =>
+          React.createElement('div', {
+            key: template.id,
+            onClick: () => setSelectedTemplate(template.id),
+            style: {
+              padding: '0.75rem',
+              backgroundColor: selectedTemplate === template.id ?
+                THEME.colors.accentSecondary : THEME.colors.bgPrimary,
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }
+          }, [
+            React.createElement('div', {
+              style: {
+                fontWeight: 'bold',
+                marginBottom: '0.25rem'
+              }
+            }, template.title),
+            React.createElement('div', {
+              style: {
+                fontSize: '0.8rem',
+                color: THEME.colors.textSecondary
+              }
+            }, template.type)
+          ])
+        ))
+      ]),
+
+      // Message Composer
+      React.createElement('div', {
+        className: 'message-composer',
+        style: {
+          backgroundColor: THEME.colors.bgSecondary,
+          padding: '1rem',
+          borderRadius: '8px'
+        }
+      }, selectedTemplate ? 
+        renderMessageComposer(selectedTemplate, selectedStudents) :
+        React.createElement('div', {
+          style: {
+            textAlign: 'center',
+            color: THEME.colors.textSecondary,
+            padding: '2rem'
+          }
+        }, 'Select a template to begin composing'))
+    ])
+  ]);
+}, [communicationTemplates, selectedTemplate, showNewTemplateModal]);
+
+const renderMessageComposer = React.useCallback((templateId, selectedStudents) => {
+  const template = communicationTemplates[templateId];
+  if (!template) return null;
+
+  return React.createElement('div', {
+    className: 'composer-content'
+  }, [
+    // Template Preview
+    React.createElement('div', {
+      className: 'template-preview',
+      style: {
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h3', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          marginBottom: '1rem'
+        }
+      }, 'Template Preview'),
+      React.createElement('div', {
+        style: {
+          backgroundColor: THEME.colors.bgPrimary,
+          padding: '1rem',
+          borderRadius: '4px'
+        }
+      }, [
+        React.createElement('div', {
+          style: {
+            marginBottom: '0.5rem',
+            fontWeight: 'bold'
+          }
+        }, `Subject: ${template.subject}`),
+        React.createElement('div', {
+          style: {
+            whiteSpace: 'pre-wrap'
+          }
+        }, template.body)
+      ])
+    ]),
+
+    // Student Selection
+    React.createElement('div', {
+      className: 'student-selection',
+      style: {
+        marginBottom: '2rem'
+      }
+    }, [
+      React.createElement('h3', {
+        style: {
+          fontFamily: THEME.fonts.title,
+          marginBottom: '1rem'
+        }
+      }, 'Select Recipients'),
+      React.createElement('div', {
+        style: {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: '0.5rem'
+        }
+      }, Object.entries(students).flatMap(([classId, classStudents]) =>
+        classStudents.map(student =>
+          React.createElement('label', {
+            key: student.id,
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.5rem',
+              backgroundColor: THEME.colors.bgPrimary,
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }
+          }, [
+            React.createElement('input', {
+              type: 'checkbox',
+              checked: selectedStudents.includes(student.id),
+              onChange: (e) => {
+                if (e.target.checked) {
+                  setSelectedStudents(prev => [...prev, student.id]);
+                } else {
+                  setSelectedStudents(prev => 
+                    prev.filter(id => id !== student.id)
+                  );
+                }
+              },
+              style: {
+                marginRight: '0.5rem'
+              }
+            }),
+            React.createElement('span', null, student.name)
+          ])
+        )
+      ))
+    ]),
+
+    // Send Button
+    React.createElement('button', {
+      onClick: () => {
+        selectedStudents.forEach(studentId => {
+          const communication = generateCommunication(templateId, studentId);
+          if (communication) {
+            sendCommunication(communication);
+          }
+
+                                 });
+      },
+      disabled: selectedStudents.length === 0,
+      style: {
+        backgroundColor: selectedStudents.length > 0 ? 
+          THEME.colors.accentPrimary : THEME.colors.bgSecondary,
+        color: THEME.colors.textPrimary,
+        padding: '0.75rem',
+        width: '100%',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: selectedStudents.length > 0 ? 'pointer' : 'not-allowed'
+      }
+    }, `Send to ${selectedStudents.length} recipient${selectedStudents.length === 1 ? '' : 's'}`)
+  ]);
+}, [communicationTemplates, students, generateCommunication, sendCommunication]);
+
+// ============= MODAL COMPONENTS ===============
+const renderModal = React.useCallback((content, onClose) => {
+  return React.createElement('div', {
+    className: 'modal-overlay',
+    onClick: onClose,
+    style: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }
+  }, React.createElement('div', {
+    className: 'modal-content',
+    onClick: e => e.stopPropagation(),
+    style: {
+      backgroundColor: THEME.colors.bgSecondary,
+      padding: '2rem',
+      borderRadius: '8px',
+      maxWidth: '90%',
+      maxHeight: '90vh',
+      overflow: 'auto',
+      position: 'relative'
+    }
+  }, [
+    React.createElement('button', {
+      onClick: onClose,
+      style: {
+        position: 'absolute',
+        top: '1rem',
+        right: '1rem',
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: THEME.colors.textSecondary,
+        fontSize: '1.5rem',
+        cursor: 'pointer'
+      }
+    }, '×'),
+    content
+  ]));
+}, []);
+
+// ============= MAIN APP RENDERING ===============
+const renderMainContent = React.useCallback(() => {
+  switch (view) {
+    case 'calendar':
+      return calendarView === 'month' ? 
+        renderCalendarGrid() : renderWeekView();
+    case 'units':
+      return renderUnitPlanner();
+    case 'standards':
+      return renderStandardsLibrary();
+    case 'resources':
+      return renderResourceLibrary();
+    case 'assessments':
+      return renderAssessmentBuilder();
+    case 'progress':
+      return renderProgressReporting();
+    case 'communication':
+      return renderCommunicationCenter();
+    default:
+      return null;
+  }
+}, [view, calendarView, renderCalendarGrid, renderWeekView, renderUnitPlanner,
+    renderStandardsLibrary, renderResourceLibrary, renderAssessmentBuilder,
+    renderProgressReporting, renderCommunicationCenter]);
+
+// Updated navigation to include all features
+const renderNavigation = React.useCallback(() => {
+  const navItems = [
+    { id: 'calendar', label: 'Calendar' },
+    { id: 'units', label: 'Units' },
+    { id: 'standards', label: 'Standards' },
+    { id: 'resources', label: 'Resources' },
+    { id: 'assessments', label: 'Assessments' },
+    { id: 'progress', label: 'Progress' },
+    { id: 'communication', label: 'Communication' }
+  ];
+
+  return React.createElement('nav', {
+    className: 'main-navigation',
+    style: {
+      backgroundColor: THEME.colors.bgSecondary,
+      padding: '1rem',
+      borderBottom: `1px solid ${THEME.colors.borderColor}`
+    }
+  }, [
+    React.createElement('div', {
+      style: {
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap'
+      }
+    }, navItems.map(item =>
+      React.createElement('button', {
+        key: item.id,
+        onClick: () => setView(item.id),
+        style: {
+          backgroundColor: view === item.id ? 
+            THEME.colors.accentPrimary : 'transparent',
+          color: THEME.colors.textPrimary,
+          padding: '0.5rem 1rem',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, item.label)
+    ))
+  ]);
+}, [view]);
+
+// Final return statement for the TeacherPlanner component
+return React.createElement('div', {
+  className: 'teacher-planner',
+  style: {
+    minHeight: '100vh',
+    backgroundColor: THEME.colors.bgPrimary,
+    color: THEME.colors.textPrimary
+  }
+}, [
+  renderHeader(),
+  renderNavigation(),
+  React.createElement('main', {
+    style: {
+      padding: '2rem'
+    }
+  }, [
+    renderMainContent(),
+    error && React.createElement(ErrorMessage),
+    loading && React.createElement(LoadingSpinner)
+  ])
+]);
+};
+
+// Export the component
+export default TeacherPlanner;
