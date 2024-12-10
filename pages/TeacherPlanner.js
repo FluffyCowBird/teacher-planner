@@ -1,3 +1,5 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 
@@ -3493,4 +3495,4 @@ service firebase.storage {
 */
 
 // Export the component
-export default TeacherPlanner;
+window.TeacherPlanner = TeacherPlanner;
