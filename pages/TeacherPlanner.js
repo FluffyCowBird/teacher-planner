@@ -236,6 +236,14 @@ const [unitConnections, setUnitConnections] = React.useState({});
         setClasses(parsed.classes || []);
         setStudents(parsed.students || {});
         setLessonTemplates(parsed.lessonTemplates || []);
+        
+        // Load new state
+        setStandards(parsed.standards || {});
+        setResources(parsed.resources || {});
+        setAssessments(parsed.assessments || {});
+        setCommunicationTemplates(parsed.communicationTemplates || {});
+        setUnitConnections(parsed.unitConnections || {});
+        
         setError(null);
       } catch (err) {
         console.error('Load error:', err);
@@ -249,80 +257,6 @@ const [unitConnections, setUnitConnections] = React.useState({});
   }, []);
 
   // Save data to localStorage with debounce
-  // Update the saveData callback to include new state
-const saveData = React.useCallback(
-  debounce(() => {
-    try {
-      const dataToSave = {
-        calendar,
-        units,
-        classes,
-        students,
-        lessonTemplates,
-        // Add new state
-        standards,
-        resources,
-        assessments,
-        communicationTemplates,
-        unitConnections
-      };
-      localStorage.setItem('teacherPlannerData', JSON.stringify(dataToSave));
-      setError(null);
-    } catch (err) {
-      console.error('Save error:', err);
-      setError(ERROR_MESSAGES.STORAGE_ERROR);
-    }
-  }, 1000),
-  [calendar, units, classes, students, lessonTemplates, 
-   standards, resources, assessments, communicationTemplates, unitConnections]
-);
-
-// First, your loadSavedData function should end as you showed:
-  const loadSavedData = () => {
-    try {
-      setLoading(true);
-      const savedData = localStorage.getItem('teacherPlannerData');
-      if (!savedData) return;
-
-      const parsed = JSON.parse(savedData);
-      if (typeof parsed !== 'object') throw new Error(ERROR_MESSAGES.INVALID_INPUT);
-
-      // Validate and transform dates in calendar
-      const validatedCalendar = {};
-      Object.entries(parsed.calendar || {}).forEach(([dateStr, value]) => {
-        if (validateDate(new Date(dateStr))) {
-          validatedCalendar[dateStr] = value;
-        }
-      });
-
-      setCalendar(validatedCalendar);
-      setUnits(parsed.units || []);
-      setClasses(parsed.classes || []);
-      setStudents(parsed.students || {});
-      setLessonTemplates(parsed.lessonTemplates || []);
-    
-      // Load new state
-      setStandards(parsed.standards || {});
-      setResources(parsed.resources || {});
-      setAssessments(parsed.assessments || {});
-      setCommunicationTemplates(parsed.communicationTemplates || {});
-      setUnitConnections(parsed.unitConnections || {});
-    
-      setError(null);
-    } catch (err) {
-      console.error('Load error:', err);
-      setError(ERROR_MESSAGES.LOAD_ERROR);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Then add these useEffect hooks and saveData function:
-  React.useEffect(() => {
-    loadSavedData();
-  }, []);
-
-  // Save data to localStorage with debounce
   const saveData = React.useCallback(
     debounce(() => {
       try {
@@ -332,7 +266,6 @@ const saveData = React.useCallback(
           classes,
           students,
           lessonTemplates,
-          // Add new state
           standards,
           resources,
           assessments,
@@ -361,7 +294,9 @@ const saveData = React.useCallback(
     if (Object.keys(calendar).length === 0 && !loading) {
       initializeCalendarSequence(new Date(), DAY_TYPES.ODD);
     }
-  }, [calendar, loading]);
+  }, [calendar, loading, initializeCalendarSequence]);
+
+  // ============= CALENDAR MANAGEMENT ===============
 
   // ============= CALENDAR MANAGEMENT ===============
 
