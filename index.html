@@ -76,7 +76,14 @@
     </style>
     
     <!-- TeacherPlanner Component -->
-    <script src="/teacher-planner/pages/TeacherPlanner.js" type="module"></script>
+    <!-- Right before closing </head> tag -->
+<script type="text/javascript">
+  window.addEventListener('load', function() {
+    const React = window.React;
+    const ReactDOM = window.ReactDOM;
+  });
+</script>
+<script src="./pages/TeacherPlanner.js" type="text/javascript"></script>
   </head>
   <body>
     <div id="login-container" class="auth-container">
