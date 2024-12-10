@@ -210,11 +210,6 @@ const [unitConnections, setUnitConnections] = React.useState({});
     dayType: null,
     period: null
   });
-const [standards, setStandards] = React.useState({});
-  const [resources, setResources] = React.useState({});
-  const [assessments, setAssessments] = React.useState({});
-  const [communicationTemplates, setCommunicationTemplates] = React.useState({});
-  const [unitConnections, setUnitConnections] = React.useState({});
   // ============= PERSISTENCE LAYER ===============
   // Load data from localStorage
   React.useEffect(() => {
