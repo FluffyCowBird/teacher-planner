@@ -1,49 +1,181 @@
-const React = window.React;
-const ReactDOM = window.ReactDOM;
+<!DOCTYPE html>
+<html data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teacher Planner</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Trebuchet+MS:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    
+    <!-- Theme variables and initial styles -->
+    <style>
+      :root[data-theme="dark"] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --accent-primary: #7289da;
+        --accent-secondary: #5865f2;
+        --border-color: #404040;
+        --success-color: #43b581;
+        --error-color: #f04747;
+        --warning-color: #faa61a;
+        --odd-day-bg: #2b3645;
+        --even-day-bg: #45352b;
+        --holiday-bg: #452b2b;
+        --workshop-bg: #2b4535;
+      }
 
-// Utility functions
-const getMonday = (date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-};
+      body {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: "Trebuchet MS", sans-serif;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+      }
 
-const addDays = (date, days) => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
+      h1, h2, h3, h4, h5, h6 {
+        font-family: "Abril Fatface", serif;
+        color: var(--text-primary);
+        margin: 0 0 1rem 0;
+      }
 
-// Constants
-const DAY_TYPES = {
-  ODD: 'odd',
-  EVEN: 'even',
-  WORKSHOP: 'workshop',
-  ASSEMBLY: 'assembly',
-  SNOW: 'snow',
-  HOLIDAY: 'holiday',
-  EARLY_RELEASE: 'early_release'
-};
+      input, select, textarea, button {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 8px;
+      }
 
-const GRADE_LEVELS = [6, 7, 8];
-const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      button {
+        background-color: var(--accent-primary);
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
 
-const STATUS_TYPES = {
-  ACADEMIC: {
-    EXCEPTIONAL: { icon: '⭐', label: 'Exceptional Work' },
-    IMPROVING: { icon: '📈', label: 'Improving' },
-    STRUGGLING: { icon: '❗', label: 'Needs Support' }
-  },
-  BEHAVIOR: {
-    POSITIVE: { icon: '👏', label: 'Positive Behavior' },
-    DISRUPTIVE: { icon: '⚠️', label: 'Disruptive' },
-    REFERRAL: { icon: '📋', label: 'Office Referral' }
-  },
-  ATTENDANCE: {
-    PRESENT: { icon: '✅', label: 'Present' },
-    ABSENT: { icon: '❌', label: 'Absent' },
-    TARDY: { icon: '⏰', label: 'Tardy' }
-  }
-};
+      button:hover {
+        background-color: var(--accent-secondary);
+      }
+    </style>
+    
+    <!-- Main app script -->
+    <script src="/teacher-planner/pages/TeacherPlanner.js" type="module"></script>
+  </head>
+  <body>
+    <div id="login-container" class="auth-container">
+      <h1>Teacher Planner</h1>
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="email-input">Email:</label>
+          <input type="email" id="email-input" value="nbeuttenmueller@sau29.org" readonly />
+        </div>
+        <div class="form-group">
+          <label for="password-input">Password:</label>
+          <input type="password" id="password-input" placeholder="Enter your password" required />
+        </div>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
+    
+    <div id="app" style="display: none;">
+      <div id="planner-root"></div>
+    </div>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBg2AtYUN_QXiUr-SxfNmda9DZwoh8HJ9g",
+        authDomain: "teacher-planner-3e51a.firebaseapp.com",
+        projectId: "teacher-planner-3e51a",
+        storageBucket: "teacher-planner-3e51a.firebasestorage.app",
+        messagingSenderId: "52595844350",
+        appId: "1:52595844350:web:1de975e598d5ce70a131af",
+        measurementId: "G-YHX3LGFLEL"
+      };
+
+      try {
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        window.signOut = function() {
+          auth.signOut().then(() => {
+            document.getElementById('login-container').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+            localStorage.clear(); // Clear stored planner data on signout
+          }).catch((error) => {
+            console.error('Sign out error:', error);
+            alert('Error signing out. Please try again.');
+          });
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const email = document.getElementById('email-input').value;
+          const password = document.getElementById('password-input').value;
+          
+          try {
+            await auth.signInWithEmailAndPassword(email, password);
+            document.getElementById('password-input').value = '';
+          } catch (error) {
+            console.error('Login error:', error);
+            alert('Incorrect password. Please try again.');
+          }
+        });
+
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            window.initializePlanner('planner-root');
+          } else {
+            document.getElementById('login-container').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        alert('Error initializing application. Please refresh the page.');
+      }
+    </script>
+
+    <style>
+      .auth-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 2rem;
+        background-color: var(--bg-secondary);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .form-group label {
+        color: var(--text-secondary);
+      }
+    </style>
+  </body>
+</html>
