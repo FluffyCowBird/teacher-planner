@@ -644,4 +644,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Export the component
   window.TeacherPlanner = TeacherPlanner;
-});
+);
