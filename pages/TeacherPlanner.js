@@ -175,30 +175,96 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showDayTypeSelector = (date, currentType) => {
-      const modalRoot = createModalRoot();
-      const createRoot = ReactDOM.createRoot || ReactDOM.render;
-      
-      const handleSelect = (newType) => {
-        handleDayTypeChange(date, newType);
-        if (ReactDOM.createRoot) {
-          root.unmount();
-        } else {
-          ReactDOM.unmountComponentAtNode(modalRoot);
-        }
-        modalRoot.remove();
-      };
+  // Remove any existing selector
+  const existingModal = document.getElementById('modal-root');
+  if (existingModal) {
+    if (ReactDOM.unmountComponentAtNode) {
+      ReactDOM.unmountComponentAtNode(existingModal);
+    }
+    existingModal.remove();
+  }
 
-      const handleClickOutside = (event) => {
-        if (!event.target.closest('.day-type-selector')) {
-          if (ReactDOM.createRoot) {
-            root.unmount();
-          } else {
+  // Create new modal container
+  const modalRoot = document.createElement('div');
+  modalRoot.id = 'modal-root';
+  document.body.appendChild(modalRoot);
+
+  // Create the selector element
+  const selectorElement = React.createElement('div', {
+    className: 'day-type-selector',
+    style: {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      backgroundColor: THEME.colors.bgSecondary,
+      padding: '1rem',
+      borderRadius: '8px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+      zIndex: 1000,
+      minWidth: '200px'
+    }
+  }, [
+    React.createElement('h3', {
+      key: 'title',
+      style: {
+        margin: '0 0 1rem 0',
+        fontFamily: THEME.fonts.title,
+        color: THEME.colors.textPrimary
+      }
+    }, 'Select Day Type'),
+    ...Object.entries(DAY_TYPES).map(([key, value]) =>
+      React.createElement('button', {
+        key,
+        onClick: () => {
+          handleDayTypeChange(date, value);
+          if (ReactDOM.unmountComponentAtNode) {
             ReactDOM.unmountComponentAtNode(modalRoot);
           }
           modalRoot.remove();
-          document.removeEventListener('click', handleClickOutside);
+        },
+        style: {
+          display: 'block',
+          width: '100%',
+          padding: '0.5rem',
+          margin: '0.25rem 0',
+          backgroundColor: value === currentType ? 
+            THEME.colors.accentPrimary : THEME.colors.bgPrimary,
+          color: THEME.colors.textPrimary,
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontFamily: THEME.fonts.body,
+          textAlign: 'left'
         }
-      };
+      }, key)
+    )
+  ]);
+
+  // Handle clicking outside the selector
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.day-type-selector')) {
+      if (ReactDOM.unmountComponentAtNode) {
+        ReactDOM.unmountComponentAtNode(modalRoot);
+      }
+      modalRoot.remove();
+      document.removeEventListener('click', handleClickOutside);
+    }
+  };
+
+  // Delay adding click listener to avoid immediate trigger
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutside);
+  }, 0);
+
+  // Render using appropriate React version
+  if (ReactDOM.createRoot) {
+    const rootInstance = ReactDOM.createRoot(modalRoot);
+    rootInstance.render(selectorElement);
+  } else {
+    ReactDOM.render(selectorElement, modalRoot);
+  }
+};
 
       const selector = React.createElement('div', {
         className: 'day-type-selector',
