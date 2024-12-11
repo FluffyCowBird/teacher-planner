@@ -1,4 +1,4 @@
-// Constants and Utility Functions
+// Constants
 const DAY_TYPES = {
   ODD: 'odd',
   EVEN: 'even',
@@ -22,6 +22,9 @@ const THEME = {
     accentPrimary: 'var(--accent-primary)',
     accentSecondary: 'var(--accent-secondary)',
     borderColor: 'var(--border-color)',
+    success: 'var(--success-color)',
+    error: 'var(--error-color)',
+    warning: 'var(--warning-color)',
     oddDayBg: 'var(--odd-day-bg)',
     evenDayBg: 'var(--even-day-bg)',
     holidayBg: 'var(--holiday-bg)',
@@ -72,6 +75,8 @@ const getDayTypeColor = (type) => {
 // Main TeacherPlanner Component
 const TeacherPlanner = () => {
   const React = window.React;
+  
+  // Core State
   const [view, setView] = React.useState('calendar');
   const [calendarView, setCalendarView] = React.useState('month');
   const [selectedDate, setSelectedDate] = React.useState(() => {
@@ -83,41 +88,42 @@ const TeacherPlanner = () => {
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
-  // Initialize calendar sequence function
-  const initializeCalendarSequence = React.useCallback((startDate, startType) => {
-    if (!validateDate(startDate) || !Object.values(DAY_TYPES).includes(startType)) {
-      setError('Invalid input for calendar initialization');
-      return;
-    }
+  // Future State Holders (commented until implemented)
+  // const [classes, setClasses] = React.useState([]);
+  // const [students, setStudents] = React.useState({});
+  // const [units, setUnits] = React.useState([]);
+  // const [standards, setStandards] = React.useState({});
+  // const [resources, setResources] = React.useState({});
+  // const [assessments, setAssessments] = React.useState({});
 
+  // Initialize calendar sequence
+  const initializeCalendarSequence = React.useCallback(() => {
     try {
       const newCalendar = {};
-      let currentType = startType;
-      const currentDate = new Date(startDate);
+      // Start from beginning of the year for consistent odd/even pattern
+      const yearStart = new Date(selectedDate.getFullYear(), 0, 1);
+      const currentDate = new Date(yearStart);
       currentDate.setHours(0, 0, 0, 0);
       
-      // Calculate end date (6 months from start)
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + 6);
+      // Calculate end date (end of the year)
+      const endDate = new Date(selectedDate.getFullYear(), 11, 31);
 
+      let schoolDayCount = 0;
       while (currentDate <= endDate) {
-        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) { // Skip weekends
+          schoolDayCount++;
           const dateStr = currentDate.toISOString().split('T')[0];
           newCalendar[dateStr] = {
-            type: currentType,
+            type: schoolDayCount % 2 === 1 ? DAY_TYPES.ODD : DAY_TYPES.EVEN,
             state: 'school',
             notes: '',
             lastModified: new Date().toISOString()
           };
-          currentType = currentType === DAY_TYPES.ODD ? DAY_TYPES.EVEN : DAY_TYPES.ODD;
         }
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      setCalendar(prev => ({
-        ...prev,
-        ...newCalendar
-      }));
+      setCalendar(newCalendar);
       setLoading(false);
       
     } catch (err) {
@@ -125,18 +131,37 @@ const TeacherPlanner = () => {
       setError('Failed to initialize calendar');
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   // Initialize calendar on mount
   React.useEffect(() => {
-    if (Object.keys(calendar).length === 0 && loading) {
-      initializeCalendarSequence(new Date(), DAY_TYPES.ODD);
+    if (Object.keys(calendar).length === 0) {
+      initializeCalendarSequence();
     }
-  }, [calendar, loading, initializeCalendarSequence]);
+  }, [calendar, initializeCalendarSequence]);
 
+  // Event Handlers
+  const handleDateChange = (newDate) => {
+    setSelectedDate(new Date(newDate));
+  };
+
+  const handleDayTypeChange = (date, type) => {
+    const dateStr = date.toISOString().split('T')[0];
+    setCalendar(prev => ({
+      ...prev,
+      [dateStr]: {
+        ...(prev[dateStr] || {}),
+        type,
+        lastModified: new Date().toISOString()
+      }
+    }));
+  };
+
+  // Render Functions
   const renderCalendarControls = () => {
     return React.createElement('div', {
       className: 'calendar-controls',
+      key: 'calendar-controls',
       style: {
         marginBottom: '20px',
         display: 'flex',
@@ -148,10 +173,12 @@ const TeacherPlanner = () => {
         key: 'prev',
         onClick: () => {
           const newDate = new Date(selectedDate);
-          calendarView === 'month' ? 
-            newDate.setMonth(newDate.getMonth() - 1) : 
+          if (calendarView === 'month') {
+            newDate.setMonth(newDate.getMonth() - 1);
+          } else {
             newDate.setDate(newDate.getDate() - 7);
-          setSelectedDate(newDate);
+          }
+          handleDateChange(newDate);
         },
         style: {
           padding: '8px 16px',
@@ -164,7 +191,7 @@ const TeacherPlanner = () => {
       }, '←'),
       
       React.createElement('h2', {
-        key: 'title',
+        key: 'current-date',
         style: {
           margin: 0,
           color: THEME.colors.textPrimary
@@ -177,10 +204,12 @@ const TeacherPlanner = () => {
         key: 'next',
         onClick: () => {
           const newDate = new Date(selectedDate);
-          calendarView === 'month' ? 
-            newDate.setMonth(newDate.getMonth() + 1) : 
+          if (calendarView === 'month') {
+            newDate.setMonth(newDate.getMonth() + 1);
+          } else {
             newDate.setDate(newDate.getDate() + 7);
-          setSelectedDate(newDate);
+          }
+          handleDateChange(newDate);
         },
         style: {
           padding: '8px 16px',
@@ -208,15 +237,13 @@ const TeacherPlanner = () => {
     ]);
   };
 
-  const renderCalendarGrid = () => {
-    const month = selectedDate.getMonth();
-    const year = selectedDate.getFullYear();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // Day headers
-    const headers = WEEKDAYS.map(day => 
-      React.createElement('div', {
+  const renderWeekView = () => {
+    const monday = getMonday(selectedDate);
+    const days = [];
+
+    // Headers
+    WEEKDAYS.forEach(day => {
+      days.push(React.createElement('div', {
         key: `header-${day}`,
         style: {
           padding: '10px',
@@ -226,28 +253,12 @@ const TeacherPlanner = () => {
           color: THEME.colors.textPrimary,
           borderBottom: `1px solid ${THEME.colors.borderColor}`
         }
-      }, day)
-    );
+      }, day));
+    });
 
-    // Calendar days
-    const days = [];
-    let startDayIndex = firstDay.getDay();
-    if (startDayIndex === 0) startDayIndex = 7;
-    startDayIndex--;
-
-    // Empty cells before first day
-    for (let i = 0; i < startDayIndex; i++) {
-      days.push(React.createElement('div', {
-        key: `empty-${i}`,
-        style: {
-          backgroundColor: THEME.colors.bgSecondary,
-          opacity: 0.5
-        }
-      }));
-    }
-
-    // Actual calendar days
-    for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
+    // Week days
+    for (let i = 0; i < 5; i++) {
+      const date = addDays(monday, i);
       const dateStr = date.toISOString().split('T')[0];
       const dayData = calendar[dateStr] || {
         type: DAY_TYPES.ODD,
@@ -255,15 +266,128 @@ const TeacherPlanner = () => {
         notes: ''
       };
 
+      days.push(React.createElement('div', {
+        key: `day-${dateStr}`,
+        style: {
+          backgroundColor: getDayTypeColor(dayData.type),
+          padding: '10px',
+          minHeight: '150px',
+          border: `1px solid ${THEME.colors.borderColor}`,
+          color: THEME.colors.textPrimary
+        }
+      }, [
+        React.createElement('div', {
+          key: 'date-header',
+          style: { 
+            fontWeight: 'bold',
+            marginBottom: '10px' 
+          }
+        }, `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`),
+        React.createElement('div', {
+          key: 'day-type',
+          style: { 
+            fontSize: '0.8em',
+            color: THEME.colors.textSecondary,
+            marginBottom: '10px'
+          }
+        }, dayData.type.toUpperCase()),
+        React.createElement('div', {
+          key: 'periods',
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px'
+          }
+        }, PERIODS.map(period => 
+          React.createElement('div', {
+            key: `period-${period}`,
+            style: {
+              padding: '5px',
+              backgroundColor: THEME.colors.bgSecondary,
+              borderRadius: '4px',
+              fontSize: '0.8em'
+            }
+          }, `Period ${period}`)
+        ))
+      ]));
+    }
+
+    return React.createElement('div', {
+      className: 'week-view',
+      key: 'week-view',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '5px',
+        backgroundColor: THEME.colors.bgPrimary,
+        padding: '10px',
+        borderRadius: '8px'
+      }
+    }, days);
+  };
+
+  const renderCalendarGrid = () => {
+    const month = selectedDate.getMonth();
+    const year = selectedDate.getFullYear();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days = [];
+    
+    // Day headers
+    WEEKDAYS.forEach(day => {
+      days.push(React.createElement('div', {
+        key: `header-${day}`,
+        style: {
+          padding: '10px',
+          backgroundColor: THEME.colors.bgSecondary,
+          textAlign: 'center',
+          fontWeight: 'bold',
+          color: THEME.colors.textPrimary,
+          borderBottom: `1px solid ${THEME.colors.borderColor}`
+        }
+      }, day));
+    });
+
+    // Empty cells before first day
+    let startDayIndex = firstDay.getDay();
+    if (startDayIndex === 0) startDayIndex = 7;
+    startDayIndex--;
+
+    for (let i = 0; i < startDayIndex; i++) {
+      days.push(React.createElement('div', {
+        key: `empty-start-${i}`,
+        style: {
+          backgroundColor: THEME.colors.bgSecondary,
+          opacity: 0.5
+        }
+      }));
+    }
+
+    // Calendar days
+    for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
       if (date.getDay() !== 0 && date.getDay() !== 6) {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayData = calendar[dateStr] || {
+          type: DAY_TYPES.ODD,
+          state: 'school',
+          notes: ''
+        };
+
         days.push(React.createElement('div', {
-          key: dateStr,
+          key: `day-${dateStr}`,
+          onClick: () => {
+            const newType = prompt('Enter day type (ODD, EVEN, HOLIDAY, WORKSHOP):', dayData.type.toUpperCase());
+            if (newType && Object.values(DAY_TYPES).includes(newType.toLowerCase())) {
+              handleDayTypeChange(date, newType.toLowerCase());
+            }
+          },
           style: {
             backgroundColor: getDayTypeColor(dayData.type),
             padding: '10px',
             minHeight: '100px',
             border: `1px solid ${THEME.colors.borderColor}`,
-            color: THEME.colors.textPrimary
+            color: THEME.colors.textPrimary,
+            cursor: 'pointer'
           }
         }, [
           React.createElement('div', {
@@ -281,7 +405,9 @@ const TeacherPlanner = () => {
       }
     }
 
-    return React.createElement('div', {
+    return React.createElement('div, {
+      className: 'month-view',
+      key: 'month-view',
       style: {
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -290,10 +416,97 @@ const TeacherPlanner = () => {
         padding: '10px',
         borderRadius: '8px'
       }
-    }, [...headers, ...days]);
+    }, days);
   };
 
-  // Main render
+  // Navigation Menu
+  const renderNavigation = () => {
+    const navItems = [
+      { id: 'calendar', label: 'Calendar' }
+      // Future nav items will be added here
+    ];
+
+    return React.createElement('nav', {
+      className: 'main-navigation',
+      key: 'navigation',
+      style: {
+        backgroundColor: THEME.colors.bgSecondary,
+        padding: '1rem',
+        marginBottom: '20px'
+      }
+    }, React.createElement('div', {
+      style: {
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap'
+      }
+    }, navItems.map(item =>
+      React.createElement('button', {
+        key: item.id,
+        onClick: () => setView(item.id),
+        style: {
+          backgroundColor: view === item.id ? 
+            THEME.colors.accentPrimary : 'transparent',
+          color: THEME.colors.textPrimary,
+          padding: '0.5rem 1rem',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, item.label)
+    )));
+  };
+
+  // Error Message Component
+  const renderError = () => {
+    if (!error) return null;
+
+    return React.createElement('div', {
+      key: 'error',
+      style: {
+        backgroundColor: THEME.colors.error,
+        color: THEME.colors.textPrimary,
+        padding: '10px',
+        borderRadius: '4px',
+        marginBottom: '20px'
+      }
+    }, error);
+  };
+
+  // Loading Component
+  const renderLoading = () => {
+    if (!loading) return null;
+
+    return React.createElement('div', {
+      key: 'loading',
+      style: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '20px'
+      }
+    }, 'Loading...');
+  };
+
+  // Main Calendar Container
+  const renderCalendarContainer = () => {
+    if (loading) return renderLoading();
+    if (error) return renderError();
+
+    return React.createElement('div', {
+      key: 'calendar-container',
+      style: {
+        backgroundColor: THEME.colors.bgSecondary,
+        padding: '20px',
+        borderRadius: '8px'
+      }
+    }, [
+      renderCalendarControls(),
+      calendarView === 'month' ? renderCalendarGrid() : renderWeekView()
+    ]);
+  };
+
+  // Main App Container
   return React.createElement('div', {
     className: 'teacher-planner',
     style: {
@@ -308,26 +521,21 @@ const TeacherPlanner = () => {
       key: 'header',
       style: {
         fontFamily: '"Abril Fatface", serif',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        color: THEME.colors.textPrimary
       }
     }, 'Teacher Planner'),
 
-    // Main content
-    React.createElement('div', {
-      key: 'content',
+    // Navigation
+    renderNavigation(),
+
+    // Main Content Area
+    React.createElement('main', {
+      key: 'main',
       style: {
-        backgroundColor: THEME.colors.bgSecondary,
-        padding: '20px',
-        borderRadius: '8px'
+        flex: 1
       }
-    }, loading ? 
-      'Loading...' : 
-      error ? `Error: ${error}` : 
-      [
-        React.createElement('div', { key: 'controls' }, renderCalendarControls()),
-        React.createElement('div', { key: 'calendar' }, renderCalendarGrid())
-      ]
-    )
+    }, renderCalendarContainer())
   ]);
 };
 
