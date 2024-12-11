@@ -1979,7 +1979,6 @@ const updateStandard = React.useCallback((standardId, updates) => {
 }, []);
 
 // ============= RESOURCE LIBRARY ===============
-const [resources, setResources] = React.useState({});
 const [resourceTags, setResourceTags] = React.useState([]);
 
 const RESOURCE_TYPES = {
@@ -2032,8 +2031,6 @@ const addResource = React.useCallback(async (resourceData, file = null) => {
 }, []);
 
 // ============= ASSESSMENT TOOLS ===============
-const [assessments, setAssessments] = React.useState({});
-
 const QUESTION_TYPES = {
   MULTIPLE_CHOICE: 'multiple_choice',
   SHORT_ANSWER: 'short_answer',
@@ -2169,8 +2166,6 @@ const calculateAssessmentProgress = (student, startDate, endDate) => {
 };
 
 // ============= PARENT COMMUNICATION ===============
-const [communicationTemplates, setCommunicationTemplates] = React.useState({});
-
 const TEMPLATE_TYPES = {
   PROGRESS_UPDATE: 'progress_update',
   BEHAVIOR_NOTIFICATION: 'behavior_notification',
@@ -2249,8 +2244,6 @@ const generateCommunication = React.useCallback((templateId, studentId, customDa
 }, [communicationTemplates, students]);
 
 // ============= CROSS-UNIT PLANNING ===============
-const [unitConnections, setUnitConnections] = React.useState({});
-
 const addUnitConnection = React.useCallback((connectionData) => {
   try {
     const newConnection = {
