@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarView === 'month' ? renderCalendarGrid() : renderWeekView()
       ])
     ]);
-  };
+  });
 
   // Export the component
   window.TeacherPlanner = TeacherPlanner;
