@@ -57,7 +57,213 @@
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(d.setDate(diff));
   };
+const ClassForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = React.useState({
+    name: '',
+    period: 1,
+    gradeLevel: GRADE_LEVELS[0],
+    room: '',
+    dayType: DAY_TYPES.ODD
+  });
 
+  return React.createElement('form', {
+    onSubmit: (e) => {
+      e.preventDefault();
+      onSubmit(formData);
+    },
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '15px',
+      padding: '20px',
+      backgroundColor: 'var(--bg-secondary)',
+      borderRadius: '8px'
+    }
+  }, [
+    // Class Name
+    React.createElement('div', {
+      key: 'name-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { 
+        key: 'name-label',
+        htmlFor: 'className'
+      }, 'Class Name'),
+      React.createElement('input', {
+        key: 'name-input',
+        id: 'className',
+        type: 'text',
+        value: formData.name,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          name: e.target.value
+        })),
+        required: true,
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      })
+    ]),
+
+    // Period
+    React.createElement('div', {
+      key: 'period-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', {
+        key: 'period-label',
+        htmlFor: 'period'
+      }, 'Period'),
+      React.createElement('select', {
+        key: 'period-select',
+        id: 'period',
+        value: formData.period,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          period: parseInt(e.target.value)
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      }, PERIODS.map(period => 
+        React.createElement('option', {
+          key: period,
+          value: period
+        }, `Period ${period}`)
+      ))
+    ]),
+
+    // Grade Level
+    React.createElement('div', {
+      key: 'grade-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', {
+        key: 'grade-label',
+        htmlFor: 'gradeLevel'
+      }, 'Grade Level'),
+      React.createElement('select', {
+        key: 'grade-select',
+        id: 'gradeLevel',
+        value: formData.gradeLevel,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          gradeLevel: parseInt(e.target.value)
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      }, GRADE_LEVELS.map(grade => 
+        React.createElement('option', {
+          key: grade,
+          value: grade
+        }, `Grade ${grade}`)
+      ))
+    ]),
+
+    // Room
+    React.createElement('div', {
+      key: 'room-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', {
+        key: 'room-label',
+        htmlFor: 'room'
+      }, 'Room'),
+      React.createElement('input', {
+        key: 'room-input',
+        id: 'room',
+        type: 'text',
+        value: formData.room,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          room: e.target.value
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      })
+    ]),
+
+    // Day Type
+    React.createElement('div', {
+      key: 'day-type-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', {
+        key: 'day-type-label',
+        htmlFor: 'dayType'
+      }, 'Day Type'),
+      React.createElement('select', {
+        key: 'day-type-select',
+        id: 'dayType',
+        value: formData.dayType,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          dayType: e.target.value
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      }, Object.entries(DAY_TYPES).map(([key, value]) => 
+        React.createElement('option', {
+          key,
+          value
+        }, key)
+      ))
+    ]),
+
+    // Form Buttons
+    React.createElement('div', {
+      key: 'button-group',
+      style: {
+        display: 'flex',
+        gap: '10px',
+        justifyContent: 'flex-end',
+        marginTop: '10px'
+      }
+    }, [
+      React.createElement('button', {
+        key: 'cancel',
+        type: 'button',
+        onClick: onCancel,
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Cancel'),
+      React.createElement('button', {
+        key: 'submit',
+        type: 'submit',
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--accent-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Add Class')
+    ])
+  ]);
+};
   // Main Component
   const TeacherPlanner = () => {
     // State declarations
@@ -160,25 +366,97 @@
 
     // Day type selector modal
     const showDayTypeSelector = (date) => {
-      const modalRoot = document.createElement('div');
-      modalRoot.id = 'modal-root';
-      document.body.appendChild(modalRoot);
+  // Remove any existing modal
+  const existingModal = document.getElementById('modal-root');
+  if (existingModal) {
+    const root = ReactDOM.createRoot(existingModal);
+    root.unmount();
+    existingModal.remove();
+  }
 
-      const dateStr = date.toISOString().split('T')[0];
-      const currentType = calendar[dateStr]?.type || DAY_TYPES.ODD;
+  const modalRoot = document.createElement('div');
+  modalRoot.id = 'modal-root';
+  document.body.appendChild(modalRoot);
 
-      const handleDayTypeChange = (newType) => {
-        const dateStr = date.toISOString().split('T')[0];
-        setCalendar(prev => ({
-          ...prev,
-          [dateStr]: {
-            ...(prev[dateStr] || {}),
-            type: newType,
-            lastModified: new Date().toISOString()
-          }
-        }));
-        modalRoot.remove();
-      };
+  const dateStr = date.toISOString().split('T')[0];
+  const currentType = calendar[dateStr]?.type || DAY_TYPES.ODD;
+
+  const handleDayTypeChange = (newType) => {
+    const dateStr = date.toISOString().split('T')[0];
+    setCalendar(prev => ({
+      ...prev,
+      [dateStr]: {
+        ...(prev[dateStr] || {}),
+        type: newType,
+        lastModified: new Date().toISOString()
+      }
+    }));
+    const root = ReactDOM.createRoot(modalRoot);
+    root.unmount();
+    modalRoot.remove();
+  };
+
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.day-type-selector')) {
+      const root = ReactDOM.createRoot(modalRoot);
+      root.unmount();
+      modalRoot.remove();
+      document.removeEventListener('click', handleClickOutside);
+    }
+  };
+
+  const root = ReactDOM.createRoot(modalRoot);
+  root.render(React.createElement('div', {
+    className: 'day-type-selector modal-overlay',
+    style: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }
+  }, React.createElement('div', {
+    className: 'modal-content',
+    style: {
+      backgroundColor: 'var(--bg-secondary)',
+      padding: '20px',
+      borderRadius: '8px',
+      minWidth: '300px'
+    }
+  }, [
+    React.createElement('h3', {
+      key: 'title',
+      style: { marginBottom: '15px' }
+    }, 'Select Day Type'),
+    ...Object.entries(DAY_TYPES).map(([key, value]) =>
+      React.createElement('button', {
+        key,
+        onClick: () => handleDayTypeChange(value),
+        style: {
+          display: 'block',
+          width: '100%',
+          padding: '8px',
+          margin: '4px 0',
+          backgroundColor: value === currentType ? 
+            'var(--accent-primary)' : 'var(--bg-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          color: 'var(--text-primary)'
+        }
+      }, key)
+    )
+  ])));
+
+  setTimeout(() => {
+    document.addEventListener('click', handleClickOutside);
+  }, 0);
+};
 
       const selectorElement = React.createElement('div', {
         className: 'day-type-selector',
@@ -535,56 +813,80 @@
     };
 
     const renderClassManager = () => {
-      return React.createElement('div', {
-        className: 'class-manager',
-        style: { padding: '20px' }
+  const [showForm, setShowForm] = React.useState(false);
+
+  const handleAddClass = (classData) => {
+    addClass(classData);
+    setShowForm(false);
+  };
+
+  return React.createElement('div', {
+    className: 'class-manager',
+    style: { padding: '20px' }
+  }, [
+    React.createElement('h2', {
+      key: 'title',
+      style: { marginBottom: '20px' }
+    }, 'Class Management'),
+    
+    !showForm && React.createElement('button', {
+      key: 'add-button',
+      onClick: () => setShowForm(true),
+      style: {
+        padding: '8px 16px',
+        backgroundColor: 'var(--accent-primary)',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        marginBottom: '20px'
+      }
+    }, 'Add New Class'),
+
+    showForm && React.createElement(ClassForm, {
+      key: 'class-form',
+      onSubmit: handleAddClass,
+      onCancel: () => setShowForm(false)
+    }),
+
+    React.createElement('div', {
+      key: 'class-list',
+      style: {
+        display: 'grid',
+        gap: '10px'
+      }
+    }, classes.map(cls => 
+      React.createElement('div', {
+        key: cls.id,
+        className: 'class-card',
+        style: {
+          padding: '15px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderRadius: '4px'
+        }
       }, [
-        React.createElement('h2', {
-          key: 'title',
-          style: { marginBottom: '20px' }
-        }, 'Class Management'),
-        React.createElement('button', {
-          key: 'add-class',
-          onClick: () => addClass({
-            name: 'New Class',
-            period: 1,
-            dayType: DAY_TYPES.ODD
-          }),
-          style: {
-            padding: '8px 16px',
-            backgroundColor: 'var(--accent-primary)',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginBottom: '20px'
-          }
-        }, 'Add New Class'),
+        React.createElement('h3', {
+          key: 'name'
+        }, cls.name),
         React.createElement('div', {
-          key: 'class-list',
-          style: {
-            display: 'grid',
-            gap: '10px'
-          }
-        }, classes.map(cls => 
-          React.createElement('div', {
-            key: cls.id,
-            className: 'class-card',
-            style: {
-              padding: '15px',
-              backgroundColor: 'var(--bg-secondary)',
-              borderRadius: '4px'
-            }
-          }, [
-            React.createElement('h3', {
-              key: 'name'
-            }, cls.name),
-            React.createElement('div', {
-              key: 'details'
-            }, `Period ${cls.period} - ${cls.dayType} days`)
-          ])
-        ))
-      ]);
-    };
+          key: 'details'
+        }, [
+          React.createElement('p', {
+            key: 'period'
+          }, `Period ${cls.period}`),
+          React.createElement('p', {
+            key: 'grade'
+          }, `Grade ${cls.gradeLevel}`),
+          React.createElement('p', {
+            key: 'room'
+          }, `Room ${cls.room}`),
+          React.createElement('p', {
+            key: 'day-type'
+          }, `${cls.dayType} days`)
+        ])
+      ])
+    ))
+  ]);
+};
 
     // Main Render
     return React.createElement('div', {
