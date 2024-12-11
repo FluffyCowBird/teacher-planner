@@ -1,8 +1,6 @@
 'use strict';
 
-// Wait for DOM content to be loaded
-document.addEventListener('DOMContentLoaded', () => {
-  // Check for required dependencies
+window.addEventListener('DOMContentLoaded', () => {
   if (!window.React || !window.ReactDOM) {
     console.error('React and ReactDOM must be loaded before TeacherPlanner.js');
     return;
@@ -89,19 +87,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Modal helper function
-  const createModalRoot = () => {
-    let modalRoot = document.getElementById('modal-root');
-    if (!modalRoot) {
-      modalRoot = document.createElement('div');
-      modalRoot.id = 'modal-root';
-      document.body.appendChild(modalRoot);
+  // Modal helper
+  const showDayTypeSelector = (date, currentType, handleDayTypeChange) => {
+    const existingModal = document.getElementById('modal-root');
+    if (existingModal) {
+      if (ReactDOM.unmountComponentAtNode) {
+        ReactDOM.unmountComponentAtNode(existingModal);
+      }
+      existingModal.remove();
     }
-    return modalRoot;
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'modal-root';
+    document.body.appendChild(modalRoot);
+
+    const selectorElement = React.createElement('div', {
+      className: 'day-type-selector',
+      style: {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: THEME.colors.bgSecondary,
+        padding: '1rem',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        zIndex: 1000,
+        minWidth: '200px'
+      }
+    }, [
+      React.createElement('h3', {
+        key: 'title',
+        style: {
+          margin: '0 0 1rem 0',
+          fontFamily: THEME.fonts.title,
+          color: THEME.colors.textPrimary
+        }
+      }, 'Select Day Type'),
+      ...Object.entries(DAY_TYPES).map(([key, value]) =>
+        React.createElement('button', {
+          key,
+          onClick: () => {
+            handleDayTypeChange(date, value);
+            modalRoot.remove();
+          },
+          style: {
+            display: 'block',
+            width: '100%',
+            padding: '0.5rem',
+            margin: '0.25rem 0',
+            backgroundColor: value === currentType ? 
+              THEME.colors.accentPrimary : THEME.colors.bgPrimary,
+            color: THEME.colors.textPrimary,
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: THEME.fonts.body,
+            textAlign: 'left'
+          }
+        }, key)
+      )
+    ]);
+
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.day-type-selector')) {
+        modalRoot.remove();
+        document.removeEventListener('click', handleClickOutside);
+      }
+    };
+
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 0);
+
+    if (ReactDOM.createRoot) {
+      const rootInstance = ReactDOM.createRoot(modalRoot);
+      rootInstance.render(selectorElement);
+    } else {
+      ReactDOM.render(selectorElement, modalRoot);
+    }
   };
 
   // Main Component
   const TeacherPlanner = () => {
+    // State
     const [view, setView] = React.useState('calendar');
     const [calendarView, setCalendarView] = React.useState('month');
     const [selectedDate, setSelectedDate] = React.useState(() => {
@@ -113,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const [error, setError] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
 
-    // Initialize calendar on mount
+    // Initialize calendar
     React.useEffect(() => {
       if (Object.keys(calendar).length === 0) {
         initializeCalendarSequence();
@@ -174,158 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
       setError(null);
     };
 
-    const showDayTypeSelector = (date, currentType) => {
-  // Remove any existing selector
-  const existingModal = document.getElementById('modal-root');
-  if (existingModal) {
-    if (ReactDOM.unmountComponentAtNode) {
-      ReactDOM.unmountComponentAtNode(existingModal);
-    }
-    existingModal.remove();
-  }
-
-  // Create new modal container
-  const modalRoot = document.createElement('div');
-  modalRoot.id = 'modal-root';
-  document.body.appendChild(modalRoot);
-
-  // Create the selector element
-  const selectorElement = React.createElement('div', {
-    className: 'day-type-selector',
-    style: {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      backgroundColor: THEME.colors.bgSecondary,
-      padding: '1rem',
-      borderRadius: '8px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-      zIndex: 1000,
-      minWidth: '200px'
-    }
-  }, [
-    React.createElement('h3', {
-      key: 'title',
-      style: {
-        margin: '0 0 1rem 0',
-        fontFamily: THEME.fonts.title,
-        color: THEME.colors.textPrimary
-      }
-    }, 'Select Day Type'),
-    ...Object.entries(DAY_TYPES).map(([key, value]) =>
-      React.createElement('button', {
-        key,
-        onClick: () => {
-          handleDayTypeChange(date, value);
-          if (ReactDOM.unmountComponentAtNode) {
-            ReactDOM.unmountComponentAtNode(modalRoot);
-          }
-          modalRoot.remove();
-        },
-        style: {
-          display: 'block',
-          width: '100%',
-          padding: '0.5rem',
-          margin: '0.25rem 0',
-          backgroundColor: value === currentType ? 
-            THEME.colors.accentPrimary : THEME.colors.bgPrimary,
-          color: THEME.colors.textPrimary,
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontFamily: THEME.fonts.body,
-          textAlign: 'left'
-        }
-      }, key)
-    )
-  ]);
-
-  // Handle clicking outside the selector
-  const handleClickOutside = (event) => {
-    if (!event.target.closest('.day-type-selector')) {
-      if (ReactDOM.unmountComponentAtNode) {
-        ReactDOM.unmountComponentAtNode(modalRoot);
-      }
-      modalRoot.remove();
-      document.removeEventListener('click', handleClickOutside);
-    }
-  };
-
-  // Delay adding click listener to avoid immediate trigger
-  setTimeout(() => {
-    document.addEventListener('click', handleClickOutside);
-  }, 0);
-
-  // Render using appropriate React version
-  if (ReactDOM.createRoot) {
-    const rootInstance = ReactDOM.createRoot(modalRoot);
-    rootInstance.render(selectorElement);
-  } else {
-    ReactDOM.render(selectorElement, modalRoot);
-  }
-};
-
-      const selector = React.createElement('div', {
-        className: 'day-type-selector',
-        style: {
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: THEME.colors.bgSecondary,
-          padding: '1rem',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 1000,
-          minWidth: '200px'
-        }
-      }, [
-        React.createElement('h3', {
-          key: 'title',
-          style: {
-            margin: '0 0 1rem 0',
-            fontFamily: THEME.fonts.title,
-            color: THEME.colors.textPrimary
-          }
-        }, 'Select Day Type'),
-        ...Object.entries(DAY_TYPES).map(([key, value]) =>
-          React.createElement('button', {
-            key,
-            onClick: () => handleSelect(value),
-            style: {
-              display: 'block',
-              width: '100%',
-              padding: '0.5rem',
-              margin: '0.25rem 0',
-              backgroundColor: value === currentType ? 
-                THEME.colors.accentPrimary : THEME.colors.bgPrimary,
-              color: THEME.colors.textPrimary,
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontFamily: THEME.fonts.body,
-              textAlign: 'left'
-            }
-          }, key)
-        )
-      ]);
-
-      if (ReactDOM.createRoot) {
-        const root = ReactDOM.createRoot(modalRoot);
-        root.render(selector);
-      } else {
-        ReactDOM.render(selector, modalRoot);
-      }
-
-      setTimeout(() => {
-        document.addEventListener('click', handleClickOutside);
-      }, 0);
-    };
-
     const renderCalendarControls = () => {
       return React.createElement('div', {
         className: 'calendar-controls',
+        key: 'controls',
         style: {
           marginBottom: '20px',
           display: 'flex',
@@ -350,7 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
             border: 'none',
             borderRadius: '4px',
             color: THEME.colors.textPrimary,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontFamily: THEME.fonts.body
           }
         }, '←'),
         React.createElement('h2', {
@@ -381,7 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
             border: 'none',
             borderRadius: '4px',
             color: THEME.colors.textPrimary,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontFamily: THEME.fonts.body
           }
         }, '→'),
         React.createElement('button', {
@@ -394,7 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
             border: 'none',
             borderRadius: '4px',
             color: THEME.colors.textPrimary,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontFamily: THEME.fonts.body
           }
         }, `Switch to ${calendarView === 'month' ? 'Week' : 'Month'} View`)
       ]);
@@ -423,11 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }, day));
       });
 
-      // Calculate starting position
+      // Calculate correct starting position
       let startDayIndex = firstDay.getDay();
-      if (startDayIndex === 0) startDayIndex = 5;  // If Sunday, move to end of previous week
-      else if (startDayIndex === 6) startDayIndex = 5;  // If Saturday, move to Friday
-      else startDayIndex--;  // Adjust for Monday start
+      if (startDayIndex === 0) startDayIndex = 5;
+      else if (startDayIndex === 6) startDayIndex = 5;
+      else startDayIndex--;
 
       // Empty cells
       for (let i = 0; i < startDayIndex; i++) {
@@ -455,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           days.push(React.createElement('div', {
             key: `day-${dateStr}`,
-            onClick: () => showDayTypeSelector(date, dayData.type),
+            onClick: () => showDayTypeSelector(date, dayData.type, handleDayTypeChange),
             style: {
               backgroundColor: getDayTypeColor(dayData.type),
               padding: '10px',
@@ -481,7 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSize: '0.8em',
                 color: THEME.colors.textSecondary,
                 fontFamily: THEME.fonts.body
-              }
+
+          }
             }, dayData.type.toUpperCase())
           ]));
         }
@@ -489,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return React.createElement('div', {
         className: 'month-view',
+        key: 'month-grid',
         style: {
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
@@ -583,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...PERIODS.map(period => 
             React.createElement('div', {
               key: `period-${period}`,
-              onClick: () => showDayTypeSelector(date, dayData.type),
+              onClick: () => showDayTypeSelector(date, dayData.type, handleDayTypeChange),
               style: {
                 backgroundColor: getDayTypeColor(dayData.type),
                 padding: '10px',
@@ -599,6 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return React.createElement('div', {
         className: 'week-view',
+        key: 'week-grid',
         style: {
           display: 'grid',
           gridTemplateColumns: '100px repeat(5, 1fr)',
@@ -640,8 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarView === 'month' ? renderCalendarGrid() : renderWeekView()
       ])
     ]);
-  });
+  };
 
   // Export the component
-  window.TeacherPlanner = TeacherPlanner;
-);
+  if (typeof window !== 'undefined') {
+    window.TeacherPlanner = TeacherPlanner;
+  }
+});
