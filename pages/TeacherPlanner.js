@@ -1,3 +1,7 @@
+// Ensure React and ReactDOM are available
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+
 // Constants
 const DAY_TYPES = {
   ODD: 'odd',
@@ -74,9 +78,7 @@ const getDayTypeColor = (type) => {
 
 // Main TeacherPlanner Component
 const TeacherPlanner = () => {
-  const React = window.React;
-  
-  // Core State
+  // State
   const [view, setView] = React.useState('calendar');
   const [calendarView, setCalendarView] = React.useState('month');
   const [selectedDate, setSelectedDate] = React.useState(() => {
@@ -88,29 +90,18 @@ const TeacherPlanner = () => {
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
-  // Future State Holders (commented until implemented)
-  // const [classes, setClasses] = React.useState([]);
-  // const [students, setStudents] = React.useState({});
-  // const [units, setUnits] = React.useState([]);
-  // const [standards, setStandards] = React.useState({});
-  // const [resources, setResources] = React.useState({});
-  // const [assessments, setAssessments] = React.useState({});
-
-  // Initialize calendar sequence
+  // Calendar Initialization
   const initializeCalendarSequence = React.useCallback(() => {
     try {
       const newCalendar = {};
-      // Start from beginning of the year for consistent odd/even pattern
       const yearStart = new Date(selectedDate.getFullYear(), 0, 1);
       const currentDate = new Date(yearStart);
       currentDate.setHours(0, 0, 0, 0);
-      
-      // Calculate end date (end of the year)
       const endDate = new Date(selectedDate.getFullYear(), 11, 31);
-
       let schoolDayCount = 0;
+
       while (currentDate <= endDate) {
-        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) { // Skip weekends
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
           schoolDayCount++;
           const dateStr = currentDate.toISOString().split('T')[0];
           newCalendar[dateStr] = {
@@ -125,7 +116,6 @@ const TeacherPlanner = () => {
 
       setCalendar(newCalendar);
       setLoading(false);
-      
     } catch (err) {
       console.error('Calendar initialization error:', err);
       setError('Failed to initialize calendar');
@@ -133,7 +123,6 @@ const TeacherPlanner = () => {
     }
   }, [selectedDate]);
 
-  // Initialize calendar on mount
   React.useEffect(() => {
     if (Object.keys(calendar).length === 0) {
       initializeCalendarSequence();
@@ -161,7 +150,6 @@ const TeacherPlanner = () => {
   const renderCalendarControls = () => {
     return React.createElement('div', {
       className: 'calendar-controls',
-      key: 'calendar-controls',
       style: {
         marginBottom: '20px',
         display: 'flex',
@@ -189,7 +177,6 @@ const TeacherPlanner = () => {
           cursor: 'pointer'
         }
       }, '←'),
-      
       React.createElement('h2', {
         key: 'current-date',
         style: {
@@ -199,7 +186,6 @@ const TeacherPlanner = () => {
       }, calendarView === 'month' ? 
         selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' }) :
         `Week of ${getMonday(selectedDate).toLocaleDateString()}`),
-      
       React.createElement('button', {
         key: 'next',
         onClick: () => {
@@ -220,7 +206,6 @@ const TeacherPlanner = () => {
           cursor: 'pointer'
         }
       }, '→'),
-      
       React.createElement('button', {
         key: 'view-toggle',
         onClick: () => setCalendarView(prev => prev === 'month' ? 'week' : 'month'),
@@ -314,7 +299,6 @@ const TeacherPlanner = () => {
 
     return React.createElement('div', {
       className: 'week-view',
-      key: 'week-view',
       style: {
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -333,7 +317,7 @@ const TeacherPlanner = () => {
     const lastDay = new Date(year, month + 1, 0);
     const days = [];
     
-    // Day headers
+    // Headers
     WEEKDAYS.forEach(day => {
       days.push(React.createElement('div', {
         key: `header-${day}`,
@@ -348,7 +332,7 @@ const TeacherPlanner = () => {
       }, day));
     });
 
-    // Empty cells before first day
+    // Empty cells
     let startDayIndex = firstDay.getDay();
     if (startDayIndex === 0) startDayIndex = 7;
     startDayIndex--;
@@ -405,9 +389,8 @@ const TeacherPlanner = () => {
       }
     }
 
-    return React.createElement('div, {
+    return React.createElement('div', {
       className: 'month-view',
-      key: 'month-view',
       style: {
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -419,16 +402,13 @@ const TeacherPlanner = () => {
     }, days);
   };
 
-  // Navigation Menu
   const renderNavigation = () => {
     const navItems = [
       { id: 'calendar', label: 'Calendar' }
-      // Future nav items will be added here
     ];
 
     return React.createElement('nav', {
       className: 'main-navigation',
-      key: 'navigation',
       style: {
         backgroundColor: THEME.colors.bgSecondary,
         padding: '1rem',
@@ -457,7 +437,6 @@ const TeacherPlanner = () => {
     )));
   };
 
-  // Error Message Component
   const renderError = () => {
     if (!error) return null;
 
@@ -473,7 +452,6 @@ const TeacherPlanner = () => {
     }, error);
   };
 
-  // Loading Component
   const renderLoading = () => {
     if (!loading) return null;
 
@@ -488,7 +466,6 @@ const TeacherPlanner = () => {
     }, 'Loading...');
   };
 
-  // Main Calendar Container
   const renderCalendarContainer = () => {
     if (loading) return renderLoading();
     if (error) return renderError();
@@ -506,7 +483,6 @@ const TeacherPlanner = () => {
     ]);
   };
 
-  // Main App Container
   return React.createElement('div', {
     className: 'teacher-planner',
     style: {
@@ -516,7 +492,6 @@ const TeacherPlanner = () => {
       padding: '20px'
     }
   }, [
-    // Header
     React.createElement('h1', {
       key: 'header',
       style: {
@@ -525,11 +500,7 @@ const TeacherPlanner = () => {
         color: THEME.colors.textPrimary
       }
     }, 'Teacher Planner'),
-
-    // Navigation
     renderNavigation(),
-
-    // Main Content Area
     React.createElement('main', {
       key: 'main',
       style: {
@@ -539,5 +510,9 @@ const TeacherPlanner = () => {
   ]);
 };
 
-// Export the component
-window.TeacherPlanner = TeacherPlanner;
+// Make sure React and ReactDOM are loaded before exporting
+if (typeof window !== 'undefined' && window.React && window.ReactDOM) {
+  window.TeacherPlanner = TeacherPlanner;
+} else {
+  console.error('React and ReactDOM must be loaded before TeacherPlanner.js');
+}
