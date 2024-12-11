@@ -41,6 +41,20 @@
   const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
   const GRADE_LEVELS = [6, 7, 8];
 
+const UNIT_STATUS = {
+  DRAFT: 'draft',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed'
+};
+
+const LESSON_TYPES = {
+  INTRODUCTION: 'introduction',
+  INSTRUCTION: 'instruction',
+  PRACTICE: 'practice',
+  ASSESSMENT: 'assessment',
+  REVIEW: 'review'
+};
+  
   // Utility Functions
   const validateDate = (date) => {
     return date instanceof Date && !isNaN(date) && date > new Date(1900, 0, 1);
@@ -65,7 +79,401 @@ const ClassForm = ({ onSubmit, onCancel }) => {
     room: '',
     dayType: DAY_TYPES.ODD
   });
+const UnitForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = React.useState({
+    title: '',
+    description: '',
+    gradeLevel: GRADE_LEVELS[0],
+    startDate: '',
+    endDate: '',
+    objectives: '',
+    status: UNIT_STATUS.DRAFT
+  });
 
+  return React.createElement('form', {
+    onSubmit: (e) => {
+      e.preventDefault();
+      onSubmit(formData);
+    },
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '15px',
+      padding: '20px',
+      backgroundColor: 'var(--bg-secondary)',
+      borderRadius: '8px'
+    }
+  }, [
+    // Title
+    React.createElement('div', {
+      key: 'title-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'unitTitle' }, 'Unit Title'),
+      React.createElement('input', {
+        id: 'unitTitle',
+        type: 'text',
+        value: formData.title,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          title: e.target.value
+        })),
+        required: true,
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      })
+    ]),
+
+    // Description
+    React.createElement('div', {
+      key: 'description-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'description' }, 'Description'),
+      React.createElement('textarea', {
+        id: 'description',
+        value: formData.description,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          description: e.target.value
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)',
+          minHeight: '100px'
+        }
+      })
+    ]),
+
+    // Grade Level
+    React.createElement('div', {
+      key: 'grade-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'gradeLevel' }, 'Grade Level'),
+      React.createElement('select', {
+        id: 'gradeLevel',
+        value: formData.gradeLevel,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          gradeLevel: parseInt(e.target.value)
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      }, GRADE_LEVELS.map(grade => 
+        React.createElement('option', {
+          key: grade,
+          value: grade
+        }, `Grade ${grade}`)
+      ))
+    ]),
+
+    // Dates
+    React.createElement('div', {
+      key: 'dates-group',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '10px'
+      }
+    }, [
+      React.createElement('div', {
+        key: 'start-date',
+        className: 'form-group'
+      }, [
+        React.createElement('label', { htmlFor: 'startDate' }, 'Start Date'),
+        React.createElement('input', {
+          id: 'startDate',
+          type: 'date',
+          value: formData.startDate,
+          onChange: (e) => setFormData(prev => ({
+            ...prev,
+            startDate: e.target.value
+          })),
+          style: {
+            width: '100%',
+            padding: '8px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color)'
+          }
+        })
+      ]),
+      React.createElement('div', {
+        key: 'end-date',
+        className: 'form-group'
+      }, [
+        React.createElement('label', { htmlFor: 'endDate' }, 'End Date'),
+        React.createElement('input', {
+          id: 'endDate',
+          type: 'date',
+          value: formData.endDate,
+          onChange: (e) => setFormData(prev => ({
+            ...prev,
+            endDate: e.target.value
+          })),
+          style: {
+            width: '100%',
+            padding: '8px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color)'
+          }
+        })
+      ])
+    ]),
+
+    // Objectives
+    React.createElement('div', {
+      key: 'objectives-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'objectives' }, 'Objectives (one per line)'),
+      React.createElement('textarea', {
+        id: 'objectives',
+        value: formData.objectives,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          objectives: e.target.value
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)',
+          minHeight: '100px'
+        }
+      })
+    ]),
+
+    // Buttons
+    React.createElement('div', {
+      key: 'button-group',
+      style: {
+        display: 'flex',
+        gap: '10px',
+        justifyContent: 'flex-end',
+        marginTop: '10px'
+      }
+    }, [
+      React.createElement('button', {
+        key: 'cancel',
+        type: 'button',
+        onClick: onCancel,
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Cancel'),
+      React.createElement('button', {
+        key: 'submit',
+        type: 'submit',
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--accent-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Create Unit')
+    ])
+  ]);
+};
+
+const LessonTemplateForm = ({ onSubmit, onCancel }) => {
+  const [formData, setFormData] = React.useState({
+    name: '',
+    type: LESSON_TYPES.INSTRUCTION,
+    structure: '',
+    duration: 45,
+    materials: ''
+  });
+
+  return React.createElement('form', {
+    onSubmit: (e) => {
+      e.preventDefault();
+      onSubmit(formData);
+    },
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '15px',
+      padding: '20px',
+      backgroundColor: 'var(--bg-secondary)',
+      borderRadius: '8px'
+    }
+  }, [
+    // Template Name
+    React.createElement('div', {
+      key: 'name-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'templateName' }, 'Template Name'),
+      React.createElement('input', {
+        id: 'templateName',
+        type: 'text',
+        value: formData.name,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          name: e.target.value
+        })),
+        required: true,
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      })
+    ]),
+
+    // Lesson Type
+    React.createElement('div', {
+      key: 'type-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'lessonType' }, 'Lesson Type'),
+      React.createElement('select', {
+        id: 'lessonType',
+        value: formData.type,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          type: e.target.value
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      }, Object.entries(LESSON_TYPES).map(([key, value]) => 
+        React.createElement('option', {
+          key,
+          value
+        }, key.charAt(0) + key.slice(1).toLowerCase().replace('_', ' '))
+      ))
+    ]),
+
+    // Lesson Structure
+    React.createElement('div', {
+      key: 'structure-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'structure' }, 'Lesson Structure'),
+      React.createElement('textarea', {
+        id: 'structure',
+        value: formData.structure,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          structure: e.target.value
+        })),
+        placeholder: 'Enter lesson structure/steps...',
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)',
+          minHeight: '150px'
+        }
+      })
+    ]),
+
+    // Duration
+    React.createElement('div', {
+      key: 'duration-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'duration' }, 'Duration (minutes)'),
+      React.createElement('input', {
+        id: 'duration',
+        type: 'number',
+        min: '1',
+        max: '180',
+        value: formData.duration,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          duration: parseInt(e.target.value)
+        })),
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)'
+        }
+      })
+    ]),
+
+    // Materials
+    React.createElement('div', {
+      key: 'materials-group',
+      className: 'form-group'
+    }, [
+      React.createElement('label', { htmlFor: 'materials' }, 'Required Materials'),
+      React.createElement('textarea', {
+        id: 'materials',
+        value: formData.materials,
+        onChange: (e) => setFormData(prev => ({
+          ...prev,
+          materials: e.target.value
+        })),
+        placeholder: 'Enter required materials (one per line)...',
+        style: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid var(--border-color)',
+          minHeight: '100px'
+        }
+      })
+    ]),
+
+    // Buttons
+    React.createElement('div', {
+      key: 'button-group',
+      style: {
+        display: 'flex',
+        gap: '10px',
+        justifyContent: 'flex-end',
+        marginTop: '10px'
+      }
+    }, [
+      React.createElement('button', {
+        key: 'cancel',
+        type: 'button',
+        onClick: onCancel,
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Cancel'),
+      React.createElement('button', {
+        key: 'submit',
+        type: 'submit',
+        style: {
+          padding: '8px 16px',
+          backgroundColor: 'var(--accent-primary)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer'
+        }
+      }, 'Save Template')
+    ])
+  ]);
+};
   return React.createElement('form', {
     onSubmit: (e) => {
       e.preventDefault();
