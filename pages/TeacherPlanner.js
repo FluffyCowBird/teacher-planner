@@ -1,654 +1,345 @@
 'use strict';
 
-// Ensure React and ReactDOM are loaded
-if (!window.React || !window.ReactDOM) {
-  console.error('React and ReactDOM must be loaded before TeacherPlanner.js');
-  throw new Error('Missing required dependencies');
-}
+(() => {
+  // Ensure React and ReactDOM are loaded
+  if (!window.React || !window.ReactDOM) {
+    console.error('React and ReactDOM must be loaded before TeacherPlanner.js');
+    return;
+  }
 
-const React = window.React;
-const ReactDOM = window.ReactDOM;
+  const React = window.React;
+  const ReactDOM = window.ReactDOM;
 
-// Constants and Types
-const DAY_TYPES = {
-  ODD: 'odd',
-  EVEN: 'even',
-  WORKSHOP: 'workshop',
-  ASSEMBLY: 'assembly',
-  SNOW: 'snow',
-  HOLIDAY: 'holiday',
-  EARLY_RELEASE: 'early_release'
-};
-// Add immediately after DAY_TYPES constant
-const STANDARD_TYPES = {
-  CONTENT: 'content',
-  SKILL: 'skill',
-  PRACTICE: 'practice',
-  CROSS_CUTTING: 'cross_cutting'
-};
-
-const RESOURCE_TYPES = {
-  DOCUMENT: 'document',
-  VIDEO: 'video',
-  WEBSITE: 'website',
-  ASSESSMENT: 'assessment',
-  ACTIVITY: 'activity',
-  WORKSHEET: 'worksheet',
-  PRESENTATION: 'presentation'
-};
-
-const QUESTION_TYPES = {
-  MULTIPLE_CHOICE: 'multiple_choice',
-  SHORT_ANSWER: 'short_answer',
-  ESSAY: 'essay',
-  MATCHING: 'matching',
-  TRUE_FALSE: 'true_false',
-  RUBRIC: 'rubric'
-};
-
-const TEMPLATE_TYPES = {
-  PROGRESS_UPDATE: 'progress_update',
-  BEHAVIOR_NOTIFICATION: 'behavior_notification',
-  ABSENCE_FOLLOW_UP: 'absence_follow_up',
-  ASSIGNMENT_REMINDER: 'assignment_reminder',
-  PARENT_CONFERENCE: 'parent_conference',
-  CUSTOM: 'custom'
-};
-
-// Utility Functions
-const validateDate = (date) => {
-  return date instanceof Date && !isNaN(date) && date > new Date(1900, 0, 1);
-};
-
-const sanitizeInput = (input) => {
-  if (typeof input !== 'string') return '';
-  return input.trim().replace(/[<>{}]/g, '');
-};
-
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+  // Constants
+  const DAY_TYPES = {
+    ODD: 'odd',
+    EVEN: 'even',
+    WORKSHOP: 'workshop',
+    ASSEMBLY: 'assembly',
+    SNOW: 'snow',
+    HOLIDAY: 'holiday',
+    EARLY_RELEASE: 'early_release'
   };
-};
-// Add after existing utility functions
-const validateStandard = (standard) => {
-  return standard && 
-         typeof standard.code === 'string' && 
-         typeof standard.description === 'string' &&
-         Object.values(STANDARD_TYPES).includes(standard.type);
-};
 
-const validateResource = (resource) => {
-  return resource && 
-         typeof resource.title === 'string' &&
-         Object.values(RESOURCE_TYPES).includes(resource.type);
-};
+  const STANDARD_TYPES = {
+    CONTENT: 'content',
+    SKILL: 'skill',
+    PRACTICE: 'practice',
+    CROSS_CUTTING: 'cross_cutting'
+  };
 
-const validateAssessment = (assessment) => {
-  return assessment && 
-         typeof assessment.title === 'string' &&
-         Array.isArray(assessment.questions);
-};
+  const RESOURCE_TYPES = {
+    DOCUMENT: 'document',
+    VIDEO: 'video',
+    WEBSITE: 'website',
+    ASSESSMENT: 'assessment',
+    ACTIVITY: 'activity',
+    WORKSHEET: 'worksheet',
+    PRESENTATION: 'presentation'
+  };
 
-const generateUniqueId = (prefix) => {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-// Main TeacherPlanner Component
-const TeacherPlanner = () => {
-  // State Management
-  // Inside TeacherPlanner component, replace existing state declarations
-const [view, setView] = React.useState('calendar');
-const [calendarView, setCalendarView] = React.useState('month');
-const [selectedDate, setSelectedDate] = React.useState(() => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-});
-const [calendar, setCalendar] = React.useState({});
-const [standards, setStandards] = React.useState({});
-const [resources, setResources] = React.useState({});
-const [assessments, setAssessments] = React.useState({});
-const [units, setUnits] = React.useState([]);
-const [classes, setClasses] = React.useState([]);
-const [students, setStudents] = React.useState({});
-const [communicationTemplates, setCommunicationTemplates] = React.useState({});
-const [unitConnections, setUnitConnections] = React.useState({});
-const [error, setError] = React.useState(null);
-const [loading, setLoading] = React.useState(true);
+  const QUESTION_TYPES = {
+    MULTIPLE_CHOICE: 'multiple_choice',
+    SHORT_ANSWER: 'short_answer',
+    ESSAY: 'essay',
+    MATCHING: 'matching',
+    TRUE_FALSE: 'true_false',
+    RUBRIC: 'rubric'
+  };
 
-  // LocalStorage persistence
-  React.useEffect(() => {
-    const loadData = () => {
+  const TEMPLATE_TYPES = {
+    PROGRESS_UPDATE: 'progress_update',
+    BEHAVIOR_NOTIFICATION: 'behavior_notification',
+    ABSENCE_FOLLOW_UP: 'absence_follow_up',
+    ASSIGNMENT_REMINDER: 'assignment_reminder',
+    PARENT_CONFERENCE: 'parent_conference',
+    CUSTOM: 'custom'
+  };
+
+  // Utility Functions
+  const validateDate = (date) => {
+    return date instanceof Date && !isNaN(date) && date > new Date(1900, 0, 1);
+  };
+
+  const sanitizeInput = (input) => {
+    if (typeof input !== 'string') return '';
+    return input.trim().replace(/[<>{}]/g, '');
+  };
+
+  const generateUniqueId = (prefix) => {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Main Component
+  const TeacherPlanner = () => {
+    // State declarations
+    const [view, setView] = React.useState('calendar');
+    const [calendarView, setCalendarView] = React.useState('month');
+    const [selectedDate, setSelectedDate] = React.useState(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return today;
+    });
+    const [calendar, setCalendar] = React.useState({});
+    const [standards, setStandards] = React.useState({});
+    const [resources, setResources] = React.useState({});
+    const [assessments, setAssessments] = React.useState({});
+    const [units, setUnits] = React.useState([]);
+    const [classes, setClasses] = React.useState([]);
+    const [students, setStudents] = React.useState({});
+    const [error, setError] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+
+    // Initialize calendar on mount
+    React.useEffect(() => {
+      if (Object.keys(calendar).length === 0) {
+        initializeCalendar();
+      }
+    }, []);
+
+    const initializeCalendar = () => {
       try {
-        const savedData = localStorage.getItem('teacherPlannerData');
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          setState(prev => ({
-            ...prev,
-            ...parsed,
-            selectedDate: new Date(parsed.selectedDate),
-            loading: false
-          }));
+        const newCalendar = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Initialize 6 months of calendar
+        const endDate = new Date(today);
+        endDate.setMonth(endDate.getMonth() + 6);
+        
+        let currentDate = new Date(today);
+        let isOdd = true;  // Start with odd day
+        
+        while (currentDate <= endDate) {
+          if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {  // Skip weekends
+            const dateStr = currentDate.toISOString().split('T')[0];
+            newCalendar[dateStr] = {
+              type: isOdd ? DAY_TYPES.ODD : DAY_TYPES.EVEN,
+              state: 'school',
+              notes: '',
+              lastModified: new Date().toISOString()
+            };
+            isOdd = !isOdd;  // Toggle between odd and even
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
         }
+        
+        setCalendar(newCalendar);
+        setLoading(false);
       } catch (err) {
-        console.error('Error loading data:', err);
-        setState(prev => ({
-          ...prev,
-          error: 'Failed to load saved data',
-          loading: false
-        }));
+        console.error('Calendar initialization error:', err);
+        setError('Failed to initialize calendar');
+        setLoading(false);
       }
     };
 
-    loadData();
-  }, []);
-
-  // Save changes to localStorage
-  const saveData = React.useCallback(
-    debounce(() => {
-      try {
-        const dataToSave = {
-          ...state,
-          selectedDate: state.selectedDate.toISOString()
-        };
-        localStorage.setItem('teacherPlannerData', JSON.stringify(dataToSave));
-      } catch (err) {
-        console.error('Error saving data:', err);
-        setState(prev => ({
-          ...prev,
-          error: 'Failed to save data'
-        }));
+    // Calendar Management
+    const updateCalendarDay = React.useCallback((date, updates) => {
+      if (!validateDate(date)) {
+        setError('Invalid date');
+        return;
       }
-    }, 1000),
-    [state]
-  );
 
-  React.useEffect(() => {
-    saveData();
-  }, [state, saveData]);
-
-  // Standards Management
-  const addStandard = React.useCallback((standardData) => {
-    if (!standardData.code || !standardData.description) {
-      setState(prev => ({
+      const dateStr = date.toISOString().split('T')[0];
+      setCalendar(prev => ({
         ...prev,
-        error: 'Invalid standard data'
-      }));
-      return null;
-    }
-
-    const newStandard = {
-      id: `standard_${Date.now()}`,
-      code: sanitizeInput(standardData.code),
-      description: sanitizeInput(standardData.description),
-      type: STANDARD_TYPES[standardData.type] || STANDARD_TYPES.CONTENT,
-      gradeLevel: standardData.gradeLevel,
-      subject: standardData.subject,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      standards: {
-        ...prev.standards,
-        [newStandard.id]: newStandard
-      }
-    }));
-
-    return newStandard.id;
-  }, []);
-
-  // Resource Management
-  const addResource = React.useCallback(async (resourceData, file = null) => {
-    if (!resourceData.title) {
-      setState(prev => ({
-        ...prev,
-        error: 'Resource title is required'
-      }));
-      return null;
-    }
-
-    const newResource = {
-      id: `resource_${Date.now()}`,
-      title: sanitizeInput(resourceData.title),
-      type: RESOURCE_TYPES[resourceData.type] || RESOURCE_TYPES.DOCUMENT,
-      description: sanitizeInput(resourceData.description || ''),
-      url: sanitizeInput(resourceData.url || ''),
-      standards: resourceData.standards || [],
-      tags: (resourceData.tags || []).map(sanitizeInput),
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    if (file) {
-      // Handle file upload when implemented
-      newResource.fileName = sanitizeInput(file.name);
-    }
-
-    setState(prev => ({
-      ...prev,
-      resources: {
-        ...prev.resources,
-        [newResource.id]: newResource
-      }
-    }));
-
-    return newResource.id;
-  }, []);
-
-  // Assessment Tools
-  const createAssessment = React.useCallback((assessmentData) => {
-    if (!assessmentData.title) {
-      setState(prev => ({
-        ...prev,
-        error: 'Assessment title is required'
-      }));
-      return null;
-    }
-
-    const newAssessment = {
-      id: `assessment_${Date.now()}`,
-      title: sanitizeInput(assessmentData.title),
-      description: sanitizeInput(assessmentData.description || ''),
-      standards: assessmentData.standards || [],
-      questions: [],
-      timeLimit: assessmentData.timeLimit || null,
-      totalPoints: 0,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      assessments: {
-        ...prev.assessments,
-        [newAssessment.id]: newAssessment
-      }
-    }));
-
-    return newAssessment.id;
-  }, []);
-
-  // Progress Reporting
-  const generateProgressReport = React.useCallback((classId, startDate, endDate) => {
-    const classStudents = state.students[classId] || [];
-    const reportData = {
-      generated: new Date().toISOString(),
-      class: state.classes.find(c => c.id === classId),
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      students: classStudents.map(student => ({
-        id: student.id,
-        name: student.name,
-        attendance: calculateAttendance(student, startDate, endDate),
-        standards: calculateStandardsMastery(student, startDate, endDate),
-        assessments: calculateAssessmentProgress(student, startDate, endDate)
-      }))
-    };
-
-    return reportData;
-  }, [state.students, state.classes]);
-
-  // Parent Communication
-  const createCommunicationTemplate = React.useCallback((templateData) => {
-    if (!templateData.title || !templateData.body) {
-      setState(prev => ({
-        ...prev,
-        error: 'Template title and body are required'
-      }));
-      return null;
-    }
-
-    const newTemplate = {
-      id: `template_${Date.now()}`,
-      title: sanitizeInput(templateData.title),
-      type: TEMPLATE_TYPES[templateData.type] || TEMPLATE_TYPES.CUSTOM,
-      subject: sanitizeInput(templateData.subject || ''),
-      body: sanitizeInput(templateData.body),
-      variables: templateData.variables || [],
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      communicationTemplates: {
-        ...prev.communicationTemplates,
-        [newTemplate.id]: newTemplate
-      }
-    }));
-
-    return newTemplate.id;
-  }, []);
-
-  // Cross-Unit Planning
-  const createUnitConnection = React.useCallback((connectionData) => {
-    if (!connectionData.units || connectionData.units.length < 2) {
-      setState(prev => ({
-        ...prev,
-        error: 'At least two units must be connected'
-      }));
-      return null;
-    }
-
-    const newConnection = {
-      id: `connection_${Date.now()}`,
-      units: connectionData.units,
-      type: sanitizeInput(connectionData.type || ''),
-      description: sanitizeInput(connectionData.description || ''),
-      standards: connectionData.standards || [],
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      unitConnections: {
-        ...prev.unitConnections,
-        [newConnection.id]: newConnection
-      }
-    }));
-
-    return newConnection.id;
-  }, []);
-
-  // Calendar Management
-  const updateCalendarDay = React.useCallback((date, updates) => {
-    if (!validateDate(date)) {
-      setState(prev => ({
-        ...prev,
-        error: 'Invalid date'
-      }));
-      return;
-    }
-
-    const dateStr = date.toISOString().split('T')[0];
-    setState(prev => ({
-      ...prev,
-      calendar: {
-        ...prev.calendar,
         [dateStr]: {
-          ...(prev.calendar[dateStr] || {}),
+          ...(prev[dateStr] || {}),
           ...updates,
           lastModified: new Date().toISOString()
         }
+      }));
+    }, []);
+
+    // Render Methods
+    const renderCalendarHeader = () => {
+      return React.createElement('div', {
+        className: 'calendar-header',
+        style: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px'
+        }
+      }, [
+        React.createElement('h2', {
+          key: 'title'
+        }, selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })),
+        React.createElement('div', {
+          key: 'controls',
+          style: {
+            display: 'flex',
+            gap: '10px'
+          }
+        }, [
+          React.createElement('button', {
+            onClick: () => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setSelectedDate(newDate);
+            }
+          }, '← Previous'),
+          React.createElement('button', {
+            onClick: () => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setSelectedDate(newDate);
+            }
+          }, 'Next →')
+        ])
+      ]);
+    };
+
+    const renderCalendarGrid = () => {
+      const month = selectedDate.getMonth();
+      const year = selectedDate.getFullYear();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      
+      // Calculate days to display
+      const days = [];
+      
+      // Add day headers
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(day => {
+        days.push(React.createElement('div', {
+          key: `header-${day}`,
+          className: 'calendar-header-cell',
+          style: {
+            padding: '10px',
+            textAlign: 'center',
+            fontWeight: 'bold',
+            backgroundColor: 'var(--bg-secondary)'
+          }
+        }, day));
+      });
+
+      // Add the days
+      let currentDate = new Date(firstDay);
+      while (currentDate <= lastDay) {
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {  // Skip weekends
+          const dateStr = currentDate.toISOString().split('T')[0];
+          const dayData = calendar[dateStr] || {
+            type: DAY_TYPES.ODD,
+            state: 'school',
+            notes: ''
+          };
+
+          days.push(React.createElement('div', {
+            key: dateStr,
+            className: 'calendar-day',
+            onClick: () => updateCalendarDay(currentDate, {
+              type: dayData.type === DAY_TYPES.ODD ? DAY_TYPES.EVEN : DAY_TYPES.ODD
+            }),
+            style: {
+              padding: '10px',
+              minHeight: '100px',
+              backgroundColor: dayData.type === DAY_TYPES.ODD ? 
+                'var(--odd-day-bg)' : 'var(--even-day-bg)',
+              cursor: 'pointer'
+            }
+          }, [
+            React.createElement('div', {
+              key: 'date',
+              className: 'date-number'
+            }, currentDate.getDate()),
+            React.createElement('div', {
+              key: 'type',
+              className: 'day-type'
+            }, dayData.type.toUpperCase())
+          ]));
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
       }
-    }));
-  }, []);
-// Add after calendar management functions
-const standardsManager = {
-  add: (standardData) => {
-    if (!validateStandard(standardData)) {
-      setError('Invalid standard data');
-      return null;
-    }
 
-    const newStandard = {
-      id: generateUniqueId('standard'),
-      code: sanitizeInput(standardData.code),
-      description: sanitizeInput(standardData.description),
-      type: standardData.type,
-      gradeLevel: standardData.gradeLevel,
-      subject: standardData.subject,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
+      return React.createElement('div', {
+        className: 'calendar-grid',
+        style: {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '5px',
+          backgroundColor: 'var(--bg-primary)',
+          padding: '10px',
+          borderRadius: '8px'
+        }
+      }, days);
     };
 
-    setStandards(prev => ({
-      ...prev,
-      [newStandard.id]: newStandard
-    }));
-
-    return newStandard.id;
-  },
-
-  update: (standardId, updates) => {
-    setStandards(prev => {
-      if (!prev[standardId]) return prev;
-
-      const updated = {
-        ...prev[standardId],
-        ...Object.fromEntries(
-          Object.entries(updates).map(([key, value]) => [
-            key, 
-            typeof value === 'string' ? sanitizeInput(value) : value
-          ])
-        ),
-        lastModified: new Date().toISOString()
-      };
-
-      return {
-        ...prev,
-        [standardId]: updated
-      };
-    });
-  },
-
-  delete: (standardId) => {
-    setStandards(prev => {
-      const { [standardId]: removed, ...rest } = prev;
-      return rest;
-    });
-  }
-};
-
-const resourceManager = {
-  add: async (resourceData, file = null) => {
-    if (!validateResource(resourceData)) {
-      setError('Invalid resource data');
-      return null;
-    }
-
-    const newResource = {
-      id: generateUniqueId('resource'),
-      title: sanitizeInput(resourceData.title),
-      type: resourceData.type,
-      description: sanitizeInput(resourceData.description || ''),
-      url: sanitizeInput(resourceData.url || ''),
-      standards: resourceData.standards || [],
-      tags: (resourceData.tags || []).map(sanitizeInput),
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
+    const renderCalendar = () => {
+      return React.createElement('div', {
+        className: 'calendar-view'
+      }, [
+        renderCalendarHeader(),
+        renderCalendarGrid()
+      ]);
     };
 
-    if (file) {
-      try {
-        // File handling would go here
-        newResource.fileName = sanitizeInput(file.name);
-      } catch (err) {
-        setError('Failed to upload file');
-        return null;
+    // Main Render
+    return React.createElement('div', {
+      className: 'teacher-planner',
+      style: {
+        minHeight: '100vh',
+        padding: '20px',
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-primary)'
       }
-    }
+    }, [
+      // Navigation
+      React.createElement('nav', {
+        key: 'nav',
+        style: {
+          marginBottom: '20px',
+          display: 'flex',
+          gap: '10px'
+        }
+      }, ['calendar', 'standards', 'resources', 'assessments'].map(viewName =>
+        React.createElement('button', {
+          key: viewName,
+          onClick: () => setView(viewName),
+          style: {
+            padding: '8px 16px',
+            backgroundColor: view === viewName ? 
+              'var(--accent-primary)' : 'var(--bg-secondary)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: 'var(--text-primary)'
+          }
+        }, viewName.charAt(0).toUpperCase() + viewName.slice(1))
+      )),
 
-    setResources(prev => ({
-      ...prev,
-      [newResource.id]: newResource
-    }));
+      // Error display
+      error && React.createElement('div', {
+        key: 'error',
+        className: 'error-message',
+        style: {
+          color: 'var(--error-color)',
+          padding: '10px',
+          marginBottom: '20px',
+          backgroundColor: 'var(--error-bg)',
+          borderRadius: '4px'
+        }
+      }, error),
 
-    return newResource.id;
-  }
-};
+      // Loading spinner
+      loading && React.createElement('div', {
+        key: 'loading',
+        className: 'loading-spinner',
+        style: {
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '20px'
+        }
+      }, 'Loading...'),
 
-const assessmentManager = {
-  create: (assessmentData) => {
-    if (!validateAssessment(assessmentData)) {
-      setError('Invalid assessment data');
-      return null;
-    }
-
-    const newAssessment = {
-      id: generateUniqueId('assessment'),
-      title: sanitizeInput(assessmentData.title),
-      description: sanitizeInput(assessmentData.description || ''),
-      standards: assessmentData.standards || [],
-      questions: [],
-      timeLimit: assessmentData.timeLimit || null,
-      totalPoints: 0,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-
-    setAssessments(prev => ({
-      ...prev,
-      [newAssessment.id]: newAssessment
-    }));
-
-    return newAssessment.id;
-  }
-};
-  // Render Methods
-  const renderCalendar = () => {
-    // Calendar rendering implementation
+      // Main content
+      !loading && React.createElement('main', {
+        key: 'main'
+      }, view === 'calendar' ? renderCalendar() : null)
+    ]);
   };
-// Add before main return statement
-const renderStandardsView = () => {
-  return React.createElement('div', {
-    className: 'standards-view',
-    style: {
-      padding: '20px'
-    }
-  }, [
-    React.createElement('h2', {
-      key: 'header',
-      style: { marginBottom: '20px' }
-    }, 'Standards Management'),
-    
-    // Standards list
-    React.createElement('div', {
-      key: 'standards-list',
-      className: 'standards-grid',
-      style: {
-        display: 'grid',
-        gap: '10px'
-      }
-    }, Object.values(standards).map(standard => 
-      React.createElement('div', {
-        key: standard.id,
-        className: 'standard-card',
-        style: {
-          padding: '15px',
-          border: '1px solid var(--border-color)',
-          borderRadius: '4px'
-        }
-      }, [
-        React.createElement('h3', { key: 'code' }, standard.code),
-        React.createElement('p', { key: 'description' }, standard.description),
-        React.createElement('div', { 
-          key: 'type',
-          className: 'standard-type'
-        }, standard.type)
-      ])
-    ))
-  ]);
-};
 
-const renderResourceView = () => {
-  return React.createElement('div', {
-    className: 'resource-view',
-    style: {
-      padding: '20px'
-    }
-  }, [
-    React.createElement('h2', {
-      key: 'header',
-      style: { marginBottom: '20px' }
-    }, 'Resource Library'),
-    
-    // Resource grid
-    React.createElement('div', {
-      key: 'resource-grid',
-      className: 'resource-grid',
-      style: {
-        display: 'grid',
-        gap: '15px',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))'
-      }
-    }, Object.values(resources).map(resource =>
-      React.createElement('div', {
-        key: resource.id,
-        className: 'resource-card',
-        style: {
-          padding: '15px',
-          border: '1px solid var(--border-color)',
-          borderRadius: '4px'
-        }
-      }, [
-        React.createElement('h3', { key: 'title' }, resource.title),
-        React.createElement('p', { key: 'description' }, resource.description),
-        React.createElement('div', { 
-          key: 'type',
-          className: 'resource-type'
-        }, resource.type)
-      ])
-    ))
-  ]);
-};
-
- // Replace or update the main return statement
-return React.createElement('div', {
-  className: 'teacher-planner',
-  style: {
-    minHeight: '100vh',
-    padding: '20px'
+  // Export the component
+  if (typeof window !== 'undefined') {
+    window.TeacherPlanner = TeacherPlanner;
   }
-}, [
-  // Navigation
-  React.createElement('nav', {
-    key: 'nav',
-    style: {
-      marginBottom: '20px',
-      display: 'flex',
-      gap: '10px'
-    }
-  }, ['calendar', 'standards', 'resources', 'assessments', 'reports'].map(viewName =>
-    React.createElement('button', {
-      key: viewName,
-      onClick: () => setView(viewName),
-      style: {
-        padding: '8px 16px',
-        backgroundColor: view === viewName ? 
-          'var(--accent-primary)' : 'var(--bg-secondary)',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer'
-      }
-    }, viewName.charAt(0).toUpperCase() + viewName.slice(1))
-  )),
-
-  // Error display
-  error && React.createElement('div', {
-    key: 'error',
-    className: 'error-message',
-    style: {
-      color: 'var(--error-color)',
-      padding: '10px',
-      marginBottom: '20px',
-      backgroundColor: 'var(--error-bg)',
-      borderRadius: '4px'
-    }
-  }, error),
-
-  // Main content
-  React.createElement('main', {
-    key: 'main'
-  }, [
-    view === 'calendar' && renderCalendar(),
-    view === 'standards' && renderStandardsView(),
-    view === 'resources' && renderResourceView(),
-    view === 'assessments' && renderAssessmentView(),
-    view === 'reports' && renderReportsView()
-  ].filter(Boolean))
-]);
-
-// Export the component
-if (typeof window !== 'undefined') {
-  window.TeacherPlanner = TeacherPlanner;
-}
+})();
